@@ -21,7 +21,7 @@ def load_image(image_file):
     with open(image_file, "rb") as image:
         return base64.b64encode(image.read()).decode()
 
-image_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\thefamilyidiomas.jpg"
+image_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\images\thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
 names = [
@@ -36,7 +36,7 @@ usernames = [
     "Henrique Marcondes"
 ]
 
-file_path = Path(__file__).parent / "hashed_pw.pkl"
+file_path = Path("C:/Users/Erione Technologies/Documents/GitHub/TeacherScheduler/streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
     hashed_passwords = pickle.load(file)
 
@@ -170,7 +170,7 @@ elif authentication_status:
         """
         )
 
-        login_image_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\gato.jpg"
+        login_image_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\images\gato.jpg"
         login_image = load_image(login_image_path)
 
         st.markdown(
