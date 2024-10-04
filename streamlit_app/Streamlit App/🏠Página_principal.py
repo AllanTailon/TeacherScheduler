@@ -120,6 +120,8 @@ elif authentication_status:
         st.session_state.selected_page = "🏠 Página Principal"
     if st.sidebar.button("👨‍🏫 Dashboard de Professores"):
         st.session_state.selected_page = "👨‍🏫 Dashboard de Professores"
+    if st.sidebar.button("📅 Planejador de rota"):
+        st.session_state.selected_page = "📅 Planejador de rota"
     if st.sidebar.button("📞 Contate-nos"):
         st.session_state.selected_page = "📞 Contate-nos"
 
@@ -361,61 +363,34 @@ elif authentication_status:
                     file_name="PROFESSORES.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-    
-    
+    # Terceira Página
+    elif st.session_state.selected_page == "📅 Planejador de rota":
+        st.header("📅 Planejador de rota")
+
+
+
+    # Quarta Página
     elif st.session_state.selected_page == "📞 Contate-nos":
         st.header("📞 Abra um chamado")
- 
+
         contact_form = """
         <form action="https://formsubmit.co/losbr62@gmail.com" method="POST">
             <input type="hidden" name="_captcha" value="false">
-            <input type="text" name="name" placeholder="Your name" required>
-            <input type="email" name="email" placeholder="Your email" required>
-            <textarea name="message" placeholder="Your message here"></textarea>
+            <input type="text" name="name" placeholder="Digite seu nome" required>
+            <input type="email" name="email" placeholder="Digite seu e-mail" required>
+            <textarea name="message" placeholder="Digite sua mensagem"></textarea>
             <button type="submit">Send</button>
         </form>
         """
 
         st.markdown(contact_form, unsafe_allow_html=True)
 
-        def local_css(file_name):
-            with open(file_name) as f:
-                st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+        def local_css():
+            file_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\style\style.css"
+            with open(file_path) as f:
+                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-        st.write(os.getcwd())
-
-        css = """
-        <style>
-        /* Style inputs with type="text", select elements and textareas */
-        input[type=text], select, textarea {
-        width: 100%; /* Full width */
-        padding: 12px; /* Some padding */ 
-        border: 1px solid #ccc; /* Gray border */
-        border-radius: 4px; /* Rounded borders */
-        box-sizing: border-box; /* Make sure that padding and width stays in place */
-        margin-top: 6px; /* Add a top margin */
-        margin-bottom: 16px; /* Bottom margin */
-        resize: vertical; /* Allow the user to vertically resize the textarea (not horizontally) */
-        }
-
-        /* Style the submit button with a specific background color etc */
-        input[type=submit] {
-        background-color: #04AA6D;
-        color: white;
-        padding: 12px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        }
-
-        /* When moving the mouse over the submit button, add a darker green color */
-        input[type=submit]:hover {
-        background-color: #45a049;
-        }
-        </style>
-        """
-
-        st.markdown(css, unsafe_allow_html=True)
+        local_css()
 
 
 
