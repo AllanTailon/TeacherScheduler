@@ -397,7 +397,4 @@ elif authentication_status:
 
     st.sidebar.markdown("---")
 
-    authenticator.logout(
-        "Logout",
-        "sidebar"
-    )
+    authenticator.logout(button_name="Logout", location="sidebar")
