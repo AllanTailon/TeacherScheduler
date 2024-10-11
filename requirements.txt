@@ -7,7 +7,6 @@ plotly-express
 pandas
 streamlit_authenticator
 pathlib
-pickle
 PIL
 datetime
 io
