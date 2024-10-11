@@ -21,7 +21,7 @@ def load_image(image_file):
     with open(image_file, "rb") as image:
         return base64.b64encode(image.read()).decode()
 
-image_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\images\thefamilyidiomas.jpg"
+image_path = r"streamlit_app\images\thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
 names = [
