@@ -5,3 +5,4 @@ google-api-python-client
 google-auth
 plotly-express
 pandas
+streamlit_authenticator
