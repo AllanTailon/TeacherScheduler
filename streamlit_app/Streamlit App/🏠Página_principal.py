@@ -21,45 +21,12 @@ def load_image(image_file):
     with open(image_file, "rb") as image:
         return base64.b64encode(image.read()).decode()
 
-image_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\images\thefamilyidiomas.jpg"
-background_image = load_image(image_path)
+i
 
-names = [
-    "Bruno Morgillo",
-    "Luiza Bindel",
-    "Henrique Marcondes"
-]
-
-usernames = [
-    "Bruno Morgillo",
-    "Luiza Bindel",
-    "Henrique Marcondes"
-]
-
-file_path = Path("C:/Users/Erione Technologies/Documents/GitHub/TeacherScheduler/streamlit_app/Authenticator/hashed_pw.pkl")
-with file_path.open("rb") as file:
-    hashed_passwords = pickle.load(file)
-
-authenticator = stauth.Authenticate(
-    names,
-    usernames,
-    hashed_passwords,
-    "Teacher Scheduler",
-    "abcdef",
     cookie_expiry_days=1
 )
 
-name, authentication_status, username = authenticator.login("Login", "main")
 
-if authentication_status == False:
-    st.error("Usuário/Senha está incorreta")
-elif authentication_status == None:
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url(data:image/png;base64,{background_image});
-            background-size: 29%;
             background-position: 25% top-center;
             background-repeat: no-repeat;
             height: 80vh;
@@ -74,26 +41,8 @@ elif authentication_status:
     
     def page_home():
 
-        st.markdown(
-        """
-        <style>
-        .stApp {
-            background-image: none;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
 
-
-    left_column, right_column = st.columns(2)
-
-    hide_st_style = """
-                <style>
-                #MainMenu {visibility: hidden;}
-                footer {visibility: hidden;}
-                header {visibility: hidden;}
-                </style>
+    
                 """
     st.markdown(hide_st_style, unsafe_allow_html=True)
 
@@ -103,42 +52,12 @@ elif authentication_status:
     )
 
 
-    st.sidebar.markdown("---")
 
-    def page_dashboard():
-        st.title("👨‍🏫 Dashboard de Professores")
-        st.markdown("This is the teachers' dashboard.")
 
-    def page_contact():
-        st.title("📞 Contate-nos")
-        st.write("Página Teste.")
-
-    if 'selected_page' not in st.session_state:
-        st.session_state.selected_page = "🏠 Página Principal"
-
-    if st.sidebar.button("🏠 Página Principal"):
-        st.session_state.selected_page = "🏠 Página Principal"
-    if st.sidebar.button("👨‍🏫 Dashboard de Professores"):
-        st.session_state.selected_page = "👨‍🏫 Dashboard de Professores"
-    if st.sidebar.button("📅 Planejador de rota"):
         st.session_state.selected_page = "📅 Planejador de rota"
     if st.sidebar.button("📞 Contate-nos"):
-        st.session_state.selected_page = "📞 Contate-nos"
 
-    # Primeira Página
-    if st.session_state.selected_page == "🏠 Página Principal":
-        def page_home():
-            st.markdown("Welcome to Teacher Scheduler!")
 
-            st.markdown(
-            """
-            <style>
-            .stApp {
-                background-image: none;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
         )
 
         left_column, right_column = st.columns(2)
