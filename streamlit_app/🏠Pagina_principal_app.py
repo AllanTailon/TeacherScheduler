@@ -40,7 +40,7 @@ file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
     hashed_passwords = pickle.load(file)
 
-authenticator = stauth.authenticate(
+authenticator = stauth.Authenticate(
     names,
     usernames,
     hashed_passwords,

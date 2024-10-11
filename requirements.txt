@@ -5,6 +5,6 @@ google-api-python-client
 google-auth
 plotly-express
 pandas
-streamlit_authenticator
+streamlit-authenticator==0.1.5
 pathlib
 datetime
