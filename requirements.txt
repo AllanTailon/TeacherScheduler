@@ -8,7 +8,6 @@ pandas
 streamlit_authenticator
 pathlib
 datetime
-io
 os
 base64
 streamlit
