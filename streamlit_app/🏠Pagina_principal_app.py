@@ -401,7 +401,7 @@ elif authentication_status:
         st.markdown(contact_form, unsafe_allow_html=True)
 
         def local_css():
-            file_path = r"C:\Users\Erione Technologies\Documents\GitHub\TeacherScheduler\streamlit_app\style\style.css"
+            file_path = "streamlit_app/style/style.css"
             with open(file_path) as f:
                 st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
