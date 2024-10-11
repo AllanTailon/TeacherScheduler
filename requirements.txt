@@ -6,3 +6,11 @@ google-auth
 plotly-express
 pandas
 streamlit_authenticator
+pathlib
+pickle
+PIL
+datetime
+io
+os
+base64
+streamlit
