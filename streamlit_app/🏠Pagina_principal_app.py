@@ -363,9 +363,24 @@ elif authentication_status:
                     file_name="PROFESSORES.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
+                
     # Terceira Página
     elif st.session_state.selected_page == "📅 Planejador de rota":
         st.header("📅 Planejador de rota")
+
+        st.subheader("Exportar Dados para Excel")
+        if st.button("Exportar para Excel"):
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
+                buffer.seek(0)
+                
+                st.download_button(
+                    label="Baixar Excel",
+                    data=buffer,
+                    file_name="SCHEDULER.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
 
 
 
