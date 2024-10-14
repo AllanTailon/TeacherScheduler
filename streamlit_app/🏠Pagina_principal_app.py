@@ -24,30 +24,16 @@ def load_image(image_file):
 image_path = r"streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
-names = [
-    "Bruno Morgillo",
-    "Luiza Bindel",
-    "Henrique Marcondes"
-]
+names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
 
-usernames = [
-    "Bruno Morgillo",
-    "Luiza Bindel",
-    "Henrique Marcondes"
-]
+usernames = ["admin", "Luiza Bindel", "Henrique Marcondes"]
 
 file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
     hashed_passwords = pickle.load(file)
 
-authenticator = stauth.Authenticate(
-    names,
-    usernames,
-    hashed_passwords,
-    "Teacher Scheduler",
-    "abcdef",
-    cookie_expiry_days=1
-)
+authenticator = stauth.Authenticate(names, usernames, hashed_passwords,
+    "Teacher Scheduler", "abcdef", cookie_expiry_days=1)
 
 name, authentication_status, username = authenticator.login("Login", "main")
 
@@ -188,6 +174,9 @@ elif authentication_status:
     # Segunda Página
     elif st.session_state.selected_page == "👨‍🏫 Dashboard de Professores":
         st.header("👨‍🏫 Dashboard de Disponibilidade")
+
+
+
         def carregar_dados():
             if os.path.exists("disponibilidade.csv"):
                 df = pd.read_csv("disponibilidade.csv")
@@ -209,8 +198,7 @@ elif authentication_status:
         if 'df_disponibilidade' not in st.session_state:
             st.session_state.df_disponibilidade = carregar_dados()
 
-        data_modificacao = st.date_input("Data da modificação", value=datetime.today())
-        data_modificada_formatada = data_modificacao.strftime("%d/%m/%Y")
+        data_modificada_formatada = datetime.now().strftime("%d/%m/%Y")
         st.write(f"Data selecionada: {data_modificada_formatada}")
 
         nomes_iniciais = ['Pessoa A']
@@ -389,7 +377,7 @@ elif authentication_status:
         st.header("📞 Abra um chamado")
 
         contact_form = """
-        <form action="https://formsubmit.co/losbr62@gmail.com" method="POST">
+        <form action="https://formsubmit.co/teacher.scheduler.contact@gmail.com" method="POST">
             <input type="hidden" name="_captcha" value="false">
             <input type="text" name="name" placeholder="Digite seu nome" required>
             <input type="email" name="email" placeholder="Digite seu e-mail" required>
@@ -397,19 +385,24 @@ elif authentication_status:
             <button type="submit">Send</button>
         </form>
         """
-
         st.markdown(contact_form, unsafe_allow_html=True)
 
-        def local_css():
+        @st.cache_data
+        def load_css():
             file_path = "streamlit_app/style/style.css"
             with open(file_path) as f:
-                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+                return f.read()
 
-        local_css()
-
-
-
+        try:
+            css_content = load_css()
+            st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
+        except FileNotFoundError:
+            st.error("CSS file not found.")
 
     st.sidebar.markdown("---")
 
-    authenticator.logout(button_name="Logout", location="sidebar")
+    image_path = r"streamlit_app/images/thefamilyidiomas.jpg"
+    background_image = load_image(image_path)
+
+
+    authenticator.logout("Logout", "sidebar")
