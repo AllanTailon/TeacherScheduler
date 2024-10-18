@@ -9,7 +9,6 @@ import base64
 import os
 from datetime import datetime
 import io
-import yaml
 
 st.set_page_config(
     page_title="Teacher Scheduler",
@@ -24,40 +23,12 @@ def load_image(image_file):
 image_path = r"streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
-cookie:
-  expiry_days: 30
-  key: "abcdef"
-  name: "Teacher Scheduler"
-credentials:
-  usernames:
-    admin:
-      failed_login_attempts: 0
-      logged_in: False
-      name: admin
-      password: 123456
-      roles:
-      - admin
-      - editor
-      - viewer
-    Luiza Bindel:
-      failed_login_attempts: 0
-      logged_in: False
-      name: Luiza Bindel
-      password: 123456
-      roles:
-      - admin
-      - editor
-      - viewer
-    Henrique Marcondes:
-      failed_login_attempts: 0
-      logged_in: False
-      name: Henrique Marcondes
-      password: 123456
-      roles:
-      - admin
-      - editor
-      - viewer
+names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
 
+usernames = ["admin", "Luiza Bindel", "Henrique Marcondes"]
+
+cookie_name = "Teacher Scheduler"
+key = "abcdef"
 
 file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
