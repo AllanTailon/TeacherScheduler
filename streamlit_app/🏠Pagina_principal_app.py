@@ -24,12 +24,40 @@ def load_image(image_file):
 image_path = r"streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
-names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
+cookie:
+  expiry_days: 30
+  key: "abcdef"
+  name: "Teacher Scheduler"
+credentials:
+  usernames:
+    admin:
+      failed_login_attempts: 0
+      logged_in: False
+      name: admin
+      password: 123456
+      roles:
+      - admin
+      - editor
+      - viewer
+    Luiza Bindel:
+      failed_login_attempts: 0
+      logged_in: False
+      name: Luiza Bindel
+      password: 123456
+      roles:
+      - admin
+      - editor
+      - viewer
+    Henrique Marcondes:
+      failed_login_attempts: 0
+      logged_in: False
+      name: Henrique Marcondes
+      password: 123456
+      roles:
+      - admin
+      - editor
+      - viewer
 
-usernames = ["admin", "Luiza Bindel", "Henrique Marcondes"]
-
-cookie_name = "Teacher Scheduler"
-key = "abcdef"
 
 file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
