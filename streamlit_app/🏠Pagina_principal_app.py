@@ -446,8 +446,4 @@ elif authentication_status:
 
     st.sidebar.markdown("---")
 
-    image_path = r"streamlit_app/images/thefamilyidiomas.jpg"
-    background_image = load_image(image_path)
-
-
     authenticator.logout("Logout", "sidebar")
