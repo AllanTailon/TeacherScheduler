@@ -34,7 +34,7 @@ file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
     hashed_passwords = pickle.load(file)
 
-authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "Teacher Scheduler", "abcdef", cookie_expiry_days=1)
+authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "Teacher Scheduler", "abcdef", cookie_expiry_days=30)
 
 name, authentication_status, username = authenticator.login("Login", "main")
 
