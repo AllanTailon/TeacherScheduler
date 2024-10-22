@@ -359,6 +359,7 @@ elif authentication_status:
     elif st.session_state.selected_page == "⏰ Tabela de Disponibilidade":
         st.header("⏰ Tabela de Disponibilidade")
 
+
         def deletar_linha(linha):
             st.session_state.df_disponibilidade = st.session_state.df_disponibilidade.drop(linha)
             st.session_state.df_disponibilidade.reset_index(drop=True, inplace=True)
@@ -398,26 +399,41 @@ elif authentication_status:
 
 
 
-    # Terceira Página pt2
+    # Quarta Página
     elif st.session_state.selected_page == "📅 Planejador de rota":
         st.header("📅 Planejador de rota")
 
+        uploaded_files = st.file_uploader(
+            "", accept_multiple_files=True
+        )
+
+        for uploaded_file in uploaded_files:
+            df = pd.read_excel(uploaded_file)
+            
+            st.write("filename:", uploaded_file.name)
+            
+            st.dataframe(df)
+
         st.subheader("Exportar Dados para Excel")
+        
         if st.button("Exportar para Excel"):
-                buffer = io.BytesIO()
-                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                    st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
-                buffer.seek(0)
-                
-                st.download_button(
-                    label="Baixar Excel",
-                    data=buffer,
-                    file_name="SCHEDULER.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+            buffer = io.BytesIO()
+            
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
+            
+            buffer.seek(0)
+            
+            st.download_button(
+                label="Baixar Excel",
+                data=buffer,
+                file_name="SCHEDULER.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 
-    # Quarta Página
+
+    # Quinta Página
     elif st.session_state.selected_page == "📞 Contate-nos":
         st.header("📞 Abra um chamado")
 
@@ -445,5 +461,3 @@ elif authentication_status:
             st.error("CSS file not found.")
 
     st.sidebar.markdown("---")
-
-    authenticator.logout("Logout", "sidebar")
