@@ -461,3 +461,5 @@ elif authentication_status:
             st.error("CSS file not found.")
 
     st.sidebar.markdown("---")
+
+    authenticator.logout("Logout", "sidebar")
