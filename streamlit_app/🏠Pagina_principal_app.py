@@ -178,14 +178,13 @@ elif authentication_status:
     elif st.session_state.selected_page == "👨‍🏫 Dashboard de Professores":
         st.header("👨‍🏫 Dashboard de Disponibilidade")
 
-
         def carregar_dados():
             if os.path.exists("disponibilidade.csv"):
                 df = pd.read_csv("disponibilidade.csv")
                 if df.empty:
-                    return pd.DataFrame(columns=['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Observações', 'Data'])
+                    return pd.DataFrame(columns=['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data'])
                 return df
-            return pd.DataFrame(columns=['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Observações', 'Data'])
+            return pd.DataFrame(columns=['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data'])
 
         def salvar_dados(df):
             df.to_csv("disponibilidade.csv", index=False)
@@ -222,20 +221,20 @@ elif authentication_status:
                 st.session_state.disponibilidade[nome_professor] = {}
 
             with cols1[1]:
-                st.write("Unidades")
+                st.write("Unidades:")
                 for unidade in unidades:
                     st.session_state.disponibilidade[nome_professor][unidade] = st.checkbox(f"{unidade}", 
                         value=st.session_state.disponibilidade[nome_professor].get(unidade, False), 
                         key=f"{nome_professor}_{unidade}")
 
             with cols1[2]:
-                st.write("Carro")
+                st.write("Carro:")
                 st.session_state.disponibilidade[nome_professor]['Carro'] = st.checkbox("Tem carro", 
                     value=st.session_state.disponibilidade[nome_professor].get('Carro', False), 
                     key=f"{nome_professor}_carro")
 
             with cols1[3]:
-                st.write("Máquina")
+                st.write("Máquina:")
                 maquinas = {}
                 with st.container():
                     maquinas['Notebook'] = st.checkbox("Notebook", 
@@ -249,9 +248,9 @@ elif authentication_status:
                         key=f"{nome_professor}_nda")
                 st.session_state.disponibilidade[nome_professor]['Máquina'] = [key for key, value in maquinas.items() if value]
 
-        cols2 = st.columns([1, 1, 1, 2])
+        cols2 = st.columns([1, 1, 1, 1])
         with cols2[0]:
-            st.write("Disponibilidade")
+            st.write("Disponibilidade:")
             periodos = ['Manhã', 'Tarde', 'Noite', 'Sábado']
             disponibilidade_horarios = {}
             with st.container():
@@ -262,31 +261,20 @@ elif authentication_status:
             st.session_state.disponibilidade[nome_professor]['Disponibilidade'] = [key for key, value in disponibilidade_horarios.items() if value]
 
         with cols2[1]:
-            st.write("Módulo")
+            st.write("Módulos:")
             modulo_opcoes = {}
             with st.container():
                 modulo_opcoes['Stage 1'] = st.checkbox("Stage 1", 
                     value='Stage 1' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
                     key=f"{nome_professor}_stage1")
-                modulo_opcoes['VIP'] = st.checkbox("VIP", 
-                    value='VIP' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                    key=f"{nome_professor}_vip")
-                modulo_opcoes['CONV'] = st.checkbox("CONV", 
-                    value='CONV' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                    key=f"{nome_professor}_conv")
-                modulo_opcoes['MBA'] = st.checkbox("MBA", 
-                    value='MBA' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                    key=f"{nome_professor}_mba")
-                modulo_opcoes['Kids'] = st.checkbox("Kids", 
-                    value='Kids' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                    key=f"{nome_professor}_kids")
-                modulo_opcoes['In-Company'] = st.checkbox("In-Company", 
-                    value='In-Company' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                    key=f"{nome_professor}_incompany")
+                for stage in range(2, 13):  # Stage 2 até Stage 12
+                    modulo_opcoes[f'Stage {stage}'] = st.checkbox(f'Stage {stage}', 
+                        value=f'Stage {stage}' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
+                        key=f"{nome_professor}_stage{stage}")
             st.session_state.disponibilidade[nome_professor]['Modulo'] = [key for key, value in modulo_opcoes.items() if value]
 
         with cols2[2]:
-            st.write("Idioma")
+            st.write("Idioma:")
             idioma_opcoes = {}
             with st.container():
                 idioma_opcoes['Inglês'] = st.checkbox("Inglês", 
@@ -297,10 +285,16 @@ elif authentication_status:
                     key=f"{nome_professor}_espanhol")
             st.session_state.disponibilidade[nome_professor]['Idioma'] = [key for key, value in idioma_opcoes.items() if value]
 
+        # Nova seção para a coluna "Categoria"
         with cols2[3]:
-            st.session_state.disponibilidade[nome_professor]['Observações'] = st.text_area("Observações", 
-                value=st.session_state.disponibilidade[nome_professor].get('Observações', ''), 
-                key=f"{nome_professor}_observacoes")
+            st.write("Categoria:")
+            categoria_opcoes = ['VIP', 'CONV', 'In-Company', 'Kids']
+            for categoria in categoria_opcoes:
+                st.session_state.disponibilidade[nome_professor][categoria] = st.checkbox(categoria, 
+                    value=categoria in st.session_state.disponibilidade[nome_professor].get('Categoria', []), 
+                    key=f"{nome_professor}_{categoria}")
+
+        st.session_state.disponibilidade[nome_professor]['Categoria'] = [key for key, value in st.session_state.disponibilidade[nome_professor].items() if value and key in categoria_opcoes]
 
         def converter_df_para_excel(df):
             output = io.BytesIO()
@@ -320,8 +314,8 @@ elif authentication_status:
                     'Disponibilidade': ', '.join(dados.get('Disponibilidade', [])),
                     'Módulo': ', '.join(dados.get('Modulo', [])),
                     'Idioma': ', '.join(dados.get('Idioma', [])),
-                    'Observações': dados.get('Observações', ''),
-                    'Data': data_modificada_formatada
+                    'Data': data_modificada_formatada,
+                    'Categoria': ', '.join(dados.get('Categoria', []))  # Adicionando a nova coluna Categoria
                 }
                 row_df = pd.DataFrame([row_data])
                 st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
@@ -332,7 +326,6 @@ elif authentication_status:
         if False:
             st.subheader("Tabela Atualizada de Disponibilidade:")
             st.dataframe(st.session_state.df_disponibilidade)
-
 
             linha_disponivel = st.selectbox("Selecione a linha a ser deletada:", st.session_state.df_disponibilidade.index)
 
@@ -353,20 +346,17 @@ elif authentication_status:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
 
-
-
-            # Terceira Página
+    # Terceira Página
     elif st.session_state.selected_page == "⏰ Tabela de Disponibilidade":
         st.header("⏰ Tabela de Disponibilidade")
-
 
         def deletar_linha(linha):
             st.session_state.df_disponibilidade = st.session_state.df_disponibilidade.drop(linha)
             st.session_state.df_disponibilidade.reset_index(drop=True, inplace=True)
-        
+
         if 'df_disponibilidade' in st.session_state:
             st.dataframe(st.session_state.df_disponibilidade)
-            
+
             st.markdown(
                 """
                 <style>
@@ -382,7 +372,7 @@ elif authentication_status:
 
             if st.button("Deletar linha"):
                 deletar_linha(linha_disponivel)
-    
+
         st.subheader("Exportar Dados para Excel")
         if st.button("Exportar para Excel"):
             buffer = io.BytesIO()
@@ -396,8 +386,6 @@ elif authentication_status:
                 file_name="DISPONIBILIDADE_PROFESSORES.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-
 
     # Quarta Página
     elif st.session_state.selected_page == "📅 Planejador de rota":
@@ -432,7 +420,6 @@ elif authentication_status:
             )
 
 
-
     # Quinta Página
     elif st.session_state.selected_page == "📞 Contate-nos":
         st.header("📞 Abra um chamado")
@@ -461,3 +448,5 @@ elif authentication_status:
             st.error("CSS file not found.")
 
     st.sidebar.markdown("---")
+
+    authenticator.logout("Logout", "sidebar")
