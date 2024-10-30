@@ -1,0 +1,18 @@
+cookie:
+  expiry_days: 30
+  key: some_key
+  name: some_cookie_name
+credentials:
+  usernames:
+    allan:
+      email: allan@gmail.com
+      failed_login_attempts: 0
+      logged_in: false
+      name: Allan Tailon
+      password: admin
+    carlos:
+      email: carlos@gmail.com
+      failed_login_attempts: 0
+      logged_in: false
+      name: Carlos Ivanski
+      password: admin

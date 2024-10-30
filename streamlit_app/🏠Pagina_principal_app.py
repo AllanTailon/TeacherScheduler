@@ -3,6 +3,8 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import yaml
+from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 from PIL import Image
 import base64
@@ -20,27 +22,29 @@ def load_image(image_file):
     with open(image_file, "rb") as image:
         return base64.b64encode(image.read()).decode()
 
-image_path = r"streamlit_app/images/thefamilyidiomas.jpg"
+image_path = "streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
-
-names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
-
-usernames = ["admin", "Luiza Bindel", "Henrique Marcondes"]
-
-cookie_name = "Teacher Scheduler"
-key = "abcdef"
 
 file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
     hashed_passwords = pickle.load(file)
 
-authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "Teacher Scheduler", "abcdef", cookie_expiry_days=30)
+with open('streamlit_app/Authenticator/config.yaml') as file:
+    config = yaml.load(file, Loader=SafeLoader)
 
-name, authentication_status, username = authenticator.login("Login", "main")
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days']
+)
 
-if authentication_status == False:
+authenticator.login()
+
+if st.session_state["authentication_status"] is False:
     st.error("Usuário/Senha está incorreta")
-elif authentication_status == None:
+
+elif st.session_state["authentication_status"] == None:
     st.markdown(
         f"""
         <style>
@@ -55,7 +59,7 @@ elif authentication_status == None:
         """,
         unsafe_allow_html=True
     )
-elif authentication_status:
+elif st.session_state["authentication_status"]:
     
     
     
@@ -86,31 +90,25 @@ elif authentication_status:
 
 
     st.sidebar.title(
-        f"Bem-vindo {name}"
+        f"Bem-vindo!"
     )
-
-
     st.sidebar.markdown("---")
-
-    def page_dashboard():
-        st.title("👨‍🏫 Dashboard de Professores")
-        st.markdown("This is the teachers' dashboard.")
-
-    def page_contact():
-        st.title("📞 Contate-nos")
-        st.write("Página Teste.")
 
     if 'selected_page' not in st.session_state:
         st.session_state.selected_page = "🏠 Página Principal"
 
     if st.sidebar.button("🏠 Página Principal"):
         st.session_state.selected_page = "🏠 Página Principal"
+
     if st.sidebar.button("👨‍🏫 Dashboard de Professores"):
         st.session_state.selected_page = "👨‍🏫 Dashboard de Professores"
+
     if st.sidebar.button("⏰ Tabela de Disponibilidade"):
         st.session_state.selected_page = "⏰ Tabela de Disponibilidade"
+
     if st.sidebar.button("📅 Planejador de rota"):
         st.session_state.selected_page = "📅 Planejador de rota"
+
     if st.sidebar.button("📞 Contate-nos"):
         st.session_state.selected_page = "📞 Contate-nos"
 
@@ -179,21 +177,19 @@ elif authentication_status:
         st.header("👨‍🏫 Dashboard de Disponibilidade")
 
         def carregar_dados():
-            if os.path.exists("disponibilidade.csv"):
-                df = pd.read_csv("disponibilidade.csv")
-                if df.empty:
-                    return pd.DataFrame(columns=['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data'])
-                return df
-            return pd.DataFrame(columns=['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data'])
-
-        def salvar_dados(df):
-            df.to_csv("disponibilidade.csv", index=False)
+            colunas = ['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data']
+            try:
+                if os.path.exists("disponibilidade.csv"):
+                    df = pd.read_csv("disponibilidade.csv")
+                    if df.empty:
+                        return pd.DataFrame(columns=colunas)
+                    return df
+            except Exception as e:
+                print(f"Erro ao ler o arquivo: {e}")
 
         def deletar_linha(index):
-            if index in st.session_state.df_disponibilidade.index:
-                nome_professor = st.session_state.df_disponibilidade.at[index, 'Professor']
-                st.session_state.df_disponibilidade = st.session_state.df_disponibilidade.drop(index).reset_index(drop=True)
-                salvar_dados(st.session_state.df_disponibilidade)
+                st.session_state.df_disponibilidade.drop(index,inplace=True).reset_index(drop=True,inplace=True)
+                st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
 
         if 'df_disponibilidade' not in st.session_state:
             st.session_state.df_disponibilidade = carregar_dados()
@@ -296,14 +292,6 @@ elif authentication_status:
 
         st.session_state.disponibilidade[nome_professor]['Categoria'] = [key for key, value in st.session_state.disponibilidade[nome_professor].items() if value and key in categoria_opcoes]
 
-        def converter_df_para_excel(df):
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, sheet_name='Disponibilidade', index=False)
-                writer.save()
-            output.seek(0)
-            return output
-
         if st.button("Salvar"):
             for nome_professor, dados in st.session_state.disponibilidade.items():
                 row_data = {
@@ -320,7 +308,7 @@ elif authentication_status:
                 row_df = pd.DataFrame([row_data])
                 st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
 
-            salvar_dados(st.session_state.df_disponibilidade)
+            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
             st.success("Dados salvos com sucesso!")
 
         if False:
@@ -351,8 +339,7 @@ elif authentication_status:
         st.header("⏰ Tabela de Disponibilidade")
 
         def deletar_linha(linha):
-            st.session_state.df_disponibilidade = st.session_state.df_disponibilidade.drop(linha)
-            st.session_state.df_disponibilidade.reset_index(drop=True, inplace=True)
+            st.session_state.df_disponibilidade.drop(linha,inplace=True).reset_index(drop=True, inplace=True)
 
         if 'df_disponibilidade' in st.session_state:
             st.dataframe(st.session_state.df_disponibilidade)
