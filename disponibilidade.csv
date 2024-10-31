@@ -1,3 +1,11 @@
-Professor,Unidades,Carro,Máquinas,Disponibilidade,Módulo,Idioma,Categoria,Data
-Professor A,Satélite,Sim,Notebook,"Manhã, Tarde","Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 7","Inglês, Espanhol",VIP,28/10/2024
-aaaaaa,Satélite,Sim,Notebook,Manhã,Stage 1,Inglês,VIP,30/10/2024
+,Professor,Unidades,Carro,Máquinas,Disponibilidade,Módulo,Idioma,Categoria,Data
+0,Professor A,Satélite,Sim,Notebook,"Manhã, Tarde","Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 7","Inglês, Espanhol",VIP,28/10/2024
+1,aaaaaa,Satélite,Sim,Notebook,Manhã,Stage 1,Inglês,VIP,30/10/2024
+2,Allan,"['Satélite', 'Vicentina', 'Jardim', 'Online']",True,"['Notebook', 'Computador']","['Manhã', 'Tarde', 'Noite', 'Sábado']","['stage 1', 'stage 2', 'stage 4', 'stage 6', 'stage 7', 'stage 8', 'stage 9', 'stage 10', 'stage 5', 'stage 11', 'stage 12', 'stage 3']","['Ingles', 'Espanhol']","['VIP', 'CONV', 'In-Company', 'Kids']",2024-10-31 15:41:18.417359
+3,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:00:13.649295
+4,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:01:52.649297
+5,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:01:55.953280
+6,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:02:07.724286
+7,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:02:10.644318
+8,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:03:07.139670
+9,Carlos,"['Satélite', 'Vicentina']",True,['Computador'],['Tarde'],"['stage 3', 'stage 4', 'stage 8', 'stage 10']","['Ingles', 'Espanhol']",['In-Company'],2024-10-31 16:03:26.268018

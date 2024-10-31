@@ -143,19 +143,7 @@ elif st.session_state["authentication_status"]:
 
         st.markdown(
             """
-            Streamlit is an open-source app framework built specifically for
-            Machine Learning and Data Science projects.
-            **👈 Select a demo from the sidebar** to see some examples
-            of what Streamlit can do!
-            ### Want to learn more?
-            - Check out [streamlit.io](https://streamlit.io)
-            - Jump into our [documentation](https://docs.streamlit.io)
-            - Ask a question in our [community
-                forums](https://discuss.streamlit.io)
-            ### See more complex demos
-            - Use a neural net to [analyze the Udacity Self-driving Car Image
-                Dataset](https://github.com/streamlit/demo-self-driving)
-            - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
+        RESUMO DE COMO USAR AQUI
         """
         )
 
@@ -194,145 +182,83 @@ elif st.session_state["authentication_status"]:
         if 'df_disponibilidade' not in st.session_state:
             st.session_state.df_disponibilidade = carregar_dados()
 
-        data_modificada_formatada = datetime.now().strftime("%d/%m/%Y")
-        st.write(f"Data selecionada: {data_modificada_formatada}")
-
         nomes_iniciais = ['Professor A']
-        unidades = ['Satélite', 'Vicentina', 'Jardim', 'Online']
 
         if 'disponibilidade' not in st.session_state:
-            st.session_state.disponibilidade = {nome: {} for nome in nomes_iniciais}
-
+            st.session_state.disponibilidade = {nome: {} for nome in nomes_iniciais}            
+    
         st.subheader("Tabela de Disponibilidade:")
 
-        for i, nome_inicial in enumerate(nomes_iniciais):
-            cols1 = st.columns([1, 1, 1, 1])
-            with cols1[0]:
-                nome_professor = st.text_input(f"Nome do professor", nome_inicial, key=f"nome_{i}")
+        cols1 = st.columns([1, 1, 1, 1])
+        with cols1[0]:
+            nome_professor = st.text_input("Nome do professor",placeholder="Digite o nome", key="nome")
 
-            if nome_professor != nome_inicial:
-                st.session_state.disponibilidade[nome_professor] = st.session_state.disponibilidade.pop(nome_inicial, {})
+        with cols1[1]:
+            unidades = st.multiselect(
+                "Unidades",
+                options=['Satélite', 'Vicentina', 'Jardim', 'Online'],
+                key="uni"
+            )
 
-            if nome_professor not in st.session_state.disponibilidade:
-                st.session_state.disponibilidade[nome_professor] = {}
+        with cols1[2]:
+            st.write("Carro:")
+            transporte = st.checkbox("Tem carro / moto",key="transp")
 
-            with cols1[1]:
-                st.write("Unidades:")
-                for unidade in unidades:
-                    st.session_state.disponibilidade[nome_professor][unidade] = st.checkbox(f"{unidade}", 
-                        value=st.session_state.disponibilidade[nome_professor].get(unidade, False), 
-                        key=f"{nome_professor}_{unidade}")
-
-            with cols1[2]:
-                st.write("Carro:")
-                st.session_state.disponibilidade[nome_professor]['Carro'] = st.checkbox("Tem carro", 
-                    value=st.session_state.disponibilidade[nome_professor].get('Carro', False), 
-                    key=f"{nome_professor}_carro")
-
-            with cols1[3]:
-                st.write("Máquina:")
-                maquinas = {}
-                with st.container():
-                    maquinas['Notebook'] = st.checkbox("Notebook", 
-                        value='Notebook' in st.session_state.disponibilidade[nome_professor].get('Máquina', []), 
-                        key=f"{nome_professor}_notebook")
-                    maquinas['Computador'] = st.checkbox("Computador", 
-                        value='Computador' in st.session_state.disponibilidade[nome_professor].get('Máquina', []), 
-                        key=f"{nome_professor}_computador")
-                    maquinas['NDA'] = st.checkbox("NDA", 
-                        value='NDA' in st.session_state.disponibilidade[nome_professor].get('Máquina', []), 
-                        key=f"{nome_professor}_nda")
-                st.session_state.disponibilidade[nome_professor]['Máquina'] = [key for key, value in maquinas.items() if value]
+        with cols1[3]:
+            componente = st.multiselect(
+                "Maquina",
+                options=['Notebook', 'Computador'],
+                key="comp"
+            )
 
         cols2 = st.columns([1, 1, 1, 1])
         with cols2[0]:
-            st.write("Disponibilidade:")
-            periodos = ['Manhã', 'Tarde', 'Noite', 'Sábado']
-            disponibilidade_horarios = {}
-            with st.container():
-                for periodo in periodos:
-                    disponibilidade_horarios[periodo] = st.checkbox(periodo, 
-                        value=periodo in st.session_state.disponibilidade[nome_professor].get('Disponibilidade', []), 
-                        key=f"{nome_professor}_{periodo}")
-            st.session_state.disponibilidade[nome_professor]['Disponibilidade'] = [key for key, value in disponibilidade_horarios.items() if value]
-
+            disponibilidade = st.multiselect(
+                    "Disponibilidade",
+                    options=['Manhã', 'Tarde', 'Noite', 'Sábado'],
+                    key="disp"
+                )
         with cols2[1]:
-            st.write("Módulos:")
-            modulo_opcoes = {}
-            with st.container():
-                modulo_opcoes['Stage 1'] = st.checkbox("Stage 1", 
-                    value='Stage 1' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                    key=f"{nome_professor}_stage1")
-                for stage in range(2, 13):  # Stage 2 até Stage 12
-                    modulo_opcoes[f'Stage {stage}'] = st.checkbox(f'Stage {stage}', 
-                        value=f'Stage {stage}' in st.session_state.disponibilidade[nome_professor].get('Modulo', []), 
-                        key=f"{nome_professor}_stage{stage}")
-            st.session_state.disponibilidade[nome_professor]['Modulo'] = [key for key, value in modulo_opcoes.items() if value]
-
+            modulos = st.multiselect(
+                    "Modulo",
+                    options=[f"stage {i}" for i in range(1, 13)],
+                    key="mod"
+                )
+            
         with cols2[2]:
-            st.write("Idioma:")
-            idioma_opcoes = {}
-            with st.container():
-                idioma_opcoes['Inglês'] = st.checkbox("Inglês", 
-                    value='Inglês' in st.session_state.disponibilidade[nome_professor].get('Idioma', []), 
-                    key=f"{nome_professor}_ingles")
-                idioma_opcoes['Espanhol'] = st.checkbox("Espanhol", 
-                    value='Espanhol' in st.session_state.disponibilidade[nome_professor].get('Idioma', []), 
-                    key=f"{nome_professor}_espanhol")
-            st.session_state.disponibilidade[nome_professor]['Idioma'] = [key for key, value in idioma_opcoes.items() if value]
+            idiomas = st.multiselect(
+                    "Idioma",
+                    options=['Ingles', 'Espanhol'],
+                    key="idioma"
+                )
 
-        # Nova seção para a coluna "Categoria"
         with cols2[3]:
-            st.write("Categoria:")
-            categoria_opcoes = ['VIP', 'CONV', 'In-Company', 'Kids']
-            for categoria in categoria_opcoes:
-                st.session_state.disponibilidade[nome_professor][categoria] = st.checkbox(categoria, 
-                    value=categoria in st.session_state.disponibilidade[nome_professor].get('Categoria', []), 
-                    key=f"{nome_professor}_{categoria}")
-
-        st.session_state.disponibilidade[nome_professor]['Categoria'] = [key for key, value in st.session_state.disponibilidade[nome_professor].items() if value and key in categoria_opcoes]
+            categoria = st.multiselect(
+                    "Categoria",
+                    options=['VIP', 'CONV', 'In-Company', 'Kids'],
+                    key="cat"
+                )
 
         if st.button("Salvar"):
-            for nome_professor, dados in st.session_state.disponibilidade.items():
-                row_data = {
-                    'Professor': nome_professor,
-                    'Unidades': ', '.join([unidade for unidade in unidades if dados.get(unidade, False)]),
-                    'Carro': 'Sim' if dados.get('Carro', False) else 'Não',
-                    'Máquinas': ', '.join(dados.get('Máquina', [])),
-                    'Disponibilidade': ', '.join(dados.get('Disponibilidade', [])),
-                    'Módulo': ', '.join(dados.get('Modulo', [])),
-                    'Idioma': ', '.join(dados.get('Idioma', [])),
-                    'Data': data_modificada_formatada,
-                    'Categoria': ', '.join(dados.get('Categoria', []))  # Adicionando a nova coluna Categoria
-                }
-                row_df = pd.DataFrame([row_data])
+
+            row_df = pd.DataFrame({
+            'Professor': nome_professor,
+            'Unidades': [unidades],
+            'Carro': transporte,
+            'Máquinas': [componente],
+            'Disponibilidade': [disponibilidade],
+            'Módulo': [modulos],
+            'Idioma': [idiomas],
+            'Data': datetime.now(),
+            'Categoria':[categoria]
+            })
+            if st.session_state.df_disponibilidade.empty:
+                st.session_state.df_disponibilidade = row_df
+            else:
                 st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
 
             st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
             st.success("Dados salvos com sucesso!")
-
-        if False:
-            st.subheader("Tabela Atualizada de Disponibilidade:")
-            st.dataframe(st.session_state.df_disponibilidade)
-
-            linha_disponivel = st.selectbox("Selecione a linha a ser deletada:", st.session_state.df_disponibilidade.index)
-
-            if st.button("Deletar linha"):
-                deletar_linha(linha_disponivel)
-
-            st.subheader("Exportar Dados para Excel")
-            if st.button("Exportar para Excel"):
-                    buffer = io.BytesIO()
-                    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                        st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
-                    buffer.seek(0)
-
-                    st.download_button(
-                        label="Baixar Excel",
-                        data=buffer,
-                        file_name="DISPONIBILIDADE_PROFESSORES.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
 
     # Terceira Página
     elif st.session_state.selected_page == "⏰ Tabela de Disponibilidade":
