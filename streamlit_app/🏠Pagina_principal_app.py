@@ -172,26 +172,32 @@ elif st.session_state["authentication_status"]:
             """,
             unsafe_allow_html=True
         )
-    
+
 
     # Segunda Página
     elif st.session_state.selected_page == "👨‍🏫 Dashboard de Professores":
         st.header("👨‍🏫 Dashboard de Disponibilidade")
 
         def carregar_dados():
-            colunas = ['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data']
+            colunas = ['Professor', 'Satélite', 'Vicentina', 'Jardim', 'Online', 
+                    'Manhã', 'Tarde', 'Noite', 'Sábado', 'Notebook', 'Computador',
+                    'Carro', 'Moto', 'Ingles', 'Espanhol', 'VIP', 'CONV',
+                    'In-Company', 'Kids', 'Data']
             try:
                 if os.path.exists("disponibilidade.csv"):
                     df = pd.read_csv("disponibilidade.csv")
                     if df.empty:
                         return pd.DataFrame(columns=colunas)
-                    return df
+                    df = df[colunas]
+                    return df.fillna(0)
             except Exception as e:
                 print(f"Erro ao ler o arquivo: {e}")
+                return pd.DataFrame(columns=colunas)
 
         def deletar_linha(index):
-                st.session_state.df_disponibilidade.drop(index,inplace=True).reset_index(drop=True,inplace=True)
-                st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
+            st.session_state.df_disponibilidade.drop(index, inplace=True)
+            st.session_state.df_disponibilidade.reset_index(drop=True, inplace=True)
+            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv", index=False)
 
         if 'df_disponibilidade' not in st.session_state:
             st.session_state.df_disponibilidade = carregar_dados()
@@ -199,13 +205,13 @@ elif st.session_state["authentication_status"]:
         nomes_iniciais = ['Professor A']
 
         if 'disponibilidade' not in st.session_state:
-            st.session_state.disponibilidade = {nome: {} for nome in nomes_iniciais}            
-    
+            st.session_state.disponibilidade = {nome: {} for nome in nomes_iniciais}
+
         st.subheader("Tabela de Disponibilidade:")
 
         cols1 = st.columns([1, 1, 1, 1])
         with cols1[0]:
-            nome_professor = st.text_input("Nome do professor",placeholder="Digite o nome", key="nome")
+            nome_professor = st.text_input("Nome do professor", placeholder="Digite o nome", key="nome")
 
         with cols1[1]:
             unidades = st.multiselect(
@@ -215,12 +221,15 @@ elif st.session_state["authentication_status"]:
             )
 
         with cols1[2]:
-            st.write("Carro:")
-            transporte = st.checkbox("Tem carro / moto",key="transp")
+            transporte = st.multiselect(
+                "Transporte",
+                options=['Carro', 'Moto'],
+                key="tran"
+            )
 
         with cols1[3]:
             componente = st.multiselect(
-                "Maquina",
+                "Máquina",
                 options=['Notebook', 'Computador'],
                 key="comp"
             )
@@ -228,50 +237,85 @@ elif st.session_state["authentication_status"]:
         cols2 = st.columns([1, 1, 1, 1])
         with cols2[0]:
             disponibilidade = st.multiselect(
-                    "Disponibilidade",
-                    options=['Manhã', 'Tarde', 'Noite', 'Sábado'],
-                    key="disp"
-                )
+                "Disponibilidade",
+                options=['Manhã', 'Tarde', 'Noite', 'Sábado'],
+                key="disp"
+            )
         with cols2[1]:
             modulos = st.multiselect(
-                    "Modulo",
-                    options=[f"stage {i}" for i in range(1, 13)],
-                    key="mod"
-                )
-            
+                "Módulo",
+                options=[f"stage {i}" for i in range(1, 13)],
+                key="mod"
+            )
+
         with cols2[2]:
             idiomas = st.multiselect(
-                    "Idioma",
-                    options=['Ingles', 'Espanhol'],
-                    key="idioma"
-                )
+                "Idioma",
+                options=['Ingles', 'Espanhol'],
+                key="idioma"
+            )
 
         with cols2[3]:
             categoria = st.multiselect(
-                    "Categoria",
-                    options=['VIP', 'CONV', 'In-Company', 'Kids'],
-                    key="cat"
-                )
+                "Categoria",
+                options=['VIP', 'CONV', 'In-Company', 'Kids'],
+                key="cat"
+            )
 
         if st.button("Salvar"):
+            unidades_bin = {
+                'Satélite': 1 if 'Satélite' in unidades else 0,
+                'Vicentina': 1 if 'Vicentina' in unidades else 0,
+                'Jardim': 1 if 'Jardim' in unidades else 0,
+                'Online': 1 if 'Online' in unidades else 0,
+            }
+
+            transporte_bin = {
+                'Carro': 1 if 'Carro' in transporte else 0,
+                'Moto': 1 if 'Moto' in transporte else 0,
+            }
+
+            disponibilidade_bin = {
+                'Manhã': 1 if 'Manhã' in disponibilidade else 0,
+                'Tarde': 1 if 'Tarde' in disponibilidade else 0,
+                'Noite': 1 if 'Noite' in disponibilidade else 0,
+                'Sábado': 1 if 'Sábado' in disponibilidade else 0,
+            }
+
+            maquinas_bin = {
+                'Notebook': 1 if 'Notebook' in componente else 0,
+                'Computador': 1 if 'Computador' in componente else 0,
+            }
+
+            idiomas_bin = {
+                'Ingles': 1 if 'Ingles' in idiomas else 0,
+                'Espanhol': 1 if 'Espanhol' in idiomas else 0,
+            }
+
+            categoria_bin = {
+                'VIP': 1 if 'VIP' in categoria else 0,
+                'CONV': 1 if 'CONV' in categoria else 0,
+                'In-Company': 1 if 'In-Company' in categoria else 0,
+                'Kids': 1 if 'Kids' in categoria else 0,
+            }
 
             row_df = pd.DataFrame({
-            'Professor': nome_professor,
-            'Unidades': [unidades],
-            'Carro': transporte,
-            'Máquinas': [componente],
-            'Disponibilidade': [disponibilidade],
-            'Módulo': [modulos],
-            'Idioma': [idiomas],
-            'Data': datetime.now(),
-            'Categoria':[categoria]
+                'Professor': [nome_professor],
+                **unidades_bin,
+                **transporte_bin,
+                **disponibilidade_bin,
+                **maquinas_bin,
+                **idiomas_bin,
+                **categoria_bin,
+                'Data': [datetime.now()]
             })
+
             if st.session_state.df_disponibilidade.empty:
                 st.session_state.df_disponibilidade = row_df
             else:
                 st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
 
-            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
+            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv", index=False)
             st.success("Dados salvos com sucesso!")
 
     # Terceira Página
@@ -281,6 +325,9 @@ elif st.session_state["authentication_status"]:
         def deletar_linha(linha):
             st.session_state.df_disponibilidade.drop(linha,inplace=True).reset_index(drop=True, inplace=True)
 
+        if 'df_disponibilidade' in st.session_state:
+            st.dataframe(st.session_state.df_disponibilidade)
+        
         if st.button("Gerar mock de professores"):
             st.session_state['info_professors'] = mock_teach_df(50)
             st.dataframe(st.session_state['info_professors'])
