@@ -160,7 +160,7 @@ elif st.session_state["authentication_status"]:
         O sistema conta com a funcionalidade adicional de abertura de chamados para solicitar ajuda, caso necessário.
         """
         )
-        
+
         login_image_path = "streamlit_app/images/diagram.png"
         login_image = load_image(login_image_path)
 
