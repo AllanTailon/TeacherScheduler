@@ -10,3 +10,4 @@ streamlit == 1.39.0
 pathlib
 datetime
 names
+ortools==9.11.4210
