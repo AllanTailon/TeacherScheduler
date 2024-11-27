@@ -9,3 +9,4 @@ streamlit-authenticator==0.4.1
 streamlit == 1.39.0
 pathlib
 datetime
+names
