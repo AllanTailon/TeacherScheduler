@@ -11,6 +11,8 @@ import base64
 import os
 from datetime import datetime
 import io
+from alocacao.utils import *
+from alocacao.teacher_alocation import TeacherScheduler
 
 st.set_page_config(
     page_title="Teacher Scheduler",
@@ -267,8 +269,9 @@ elif st.session_state["authentication_status"]:
         def deletar_linha(linha):
             st.session_state.df_disponibilidade.drop(linha,inplace=True).reset_index(drop=True, inplace=True)
 
-        if 'df_disponibilidade' in st.session_state:
-            st.dataframe(st.session_state.df_disponibilidade)
+        if st.button("Gerar mock de professores"):
+            st.session_state['info_professors'] = mock_teach_df(50)
+            st.dataframe(st.session_state['info_professors'])
 
             st.markdown(
                 """
@@ -304,34 +307,47 @@ elif st.session_state["authentication_status"]:
     elif st.session_state.selected_page == "📅 Planejador de rota":
         st.header("📅 Planejador de rota")
 
-        uploaded_files = st.file_uploader(
-            "", accept_multiple_files=True
+        uploaded_file = st.file_uploader(
+            "Upload do arquivo das turmas", type=["xlsx"]
         )
 
-        for uploaded_file in uploaded_files:
-            df = pd.read_excel(uploaded_file)
-            
-            st.write("filename:", uploaded_file.name)
-            
-            st.dataframe(df)
+        if uploaded_file:
+            aulas_raw = pd.read_excel(uploaded_file,header=1)
+            st.dataframe(aulas_raw)
 
-        st.subheader("Exportar Dados para Excel")
-        
-        if st.button("Exportar para Excel"):
-            buffer = io.BytesIO()
-            
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
-            
-            buffer.seek(0)
-            
-            st.download_button(
-                label="Baixar Excel",
-                data=buffer,
-                file_name="SCHEDULER.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            if st.button("Gerar Rotas"):
 
+                if 'info_professors' not in st.session_state:
+                    st.error("Por favor, insira os dados dos professores primeiro.")
+
+                else:
+                    aulas_simples, doub, tri = base_selection(aulas_raw)
+                    
+                    aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
+                    aulas_triplicadas = expand_rows(tri, lambda row: replicate_row(row, times=3))
+                    
+                    df_tratado = pd.concat([aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True)
+                    df_final = clean_data(df_tratado)
+                    
+                    Ts = TeacherScheduler(df_final, st.session_state['info_professors'])
+                    base_alocada = Ts.schedule_teachers()
+
+                    st.write("Rotas Geradas!")
+                    st.dataframe(base_alocada)
+
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                        df_final.to_excel(writer, index=False, sheet_name="Rotas")
+                    processed_file = output.getvalue()
+                    
+                    st.download_button(
+                        label="Download das Rotas",
+                        data=processed_file,
+                        file_name="rotas_geradas.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+        else:
+            st.warning("Por favor, faça o upload do arquivo das turmas.")
 
     # Quinta Página
     elif st.session_state.selected_page == "📞 Contate-nos":
