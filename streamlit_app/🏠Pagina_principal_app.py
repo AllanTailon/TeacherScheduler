@@ -11,7 +11,7 @@ import base64
 import os
 from datetime import datetime
 import io
-from alocacao.utils import *
+from utils import *
 from alocacao.teacher_alocation import TeacherScheduler
 
 st.set_page_config(
