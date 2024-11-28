@@ -203,12 +203,15 @@ elif st.session_state["authentication_status"]:
             )
 
         with cols1[2]:
-            st.write("Carro:")
-            transporte = st.checkbox("Tem carro / moto",key="transp")
+            transporte = st.multiselect(
+                "Possui automovel",
+                options=['Sim', 'Não'],
+                key="trpt"
+            )
 
         with cols1[3]:
             componente = st.multiselect(
-                "Maquina",
+                "Máquina",
                 options=['Notebook', 'Computador'],
                 key="comp"
             )
@@ -268,6 +271,9 @@ elif st.session_state["authentication_status"]:
 
         def deletar_linha(linha):
             st.session_state.df_disponibilidade.drop(linha,inplace=True).reset_index(drop=True, inplace=True)
+
+        if 'df_disponibilidade' in st.session_state:
+            st.dataframe(st.session_state.df_disponibilidade)
 
         if st.button("Gerar mock de professores"):
             st.session_state['info_professors'] = mock_teach_df(50)
