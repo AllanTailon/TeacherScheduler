@@ -166,24 +166,6 @@ elif st.session_state["authentication_status"]:
     elif st.session_state.selected_page == "👨‍🏫 Dashboard de Professores":
         st.header("👨‍🏫 Dashboard de Disponibilidade")
 
-        def carregar_dados():
-            colunas = ['Professor', 'Unidades', 'Carro', 'Máquinas', 'Disponibilidade', 'Módulo', 'Idioma', 'Categoria', 'Data']
-            try:
-                if os.path.exists("disponibilidade.csv"):
-                    df = pd.read_csv("disponibilidade.csv")
-                    if df.empty:
-                        return pd.DataFrame(columns=colunas)
-                    return df
-            except Exception as e:
-                print(f"Erro ao ler o arquivo: {e}")
-
-        def deletar_linha(index):
-                st.session_state.df_disponibilidade.drop(index,inplace=True).reset_index(drop=True,inplace=True)
-                st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
-
-        if 'df_disponibilidade' not in st.session_state:
-            st.session_state.df_disponibilidade = carregar_dados()
-
         nomes_iniciais = ['Professor A']
 
         if 'disponibilidade' not in st.session_state:
@@ -197,46 +179,49 @@ elif st.session_state["authentication_status"]:
 
         with cols1[1]:
             unidades = st.multiselect(
-                "Unidades",
-                options=['Satélite', 'Vicentina', 'Jardim', 'Online'],
+                "Unidades:",
+                options=["Satélite", "Vicentina", "Jardim", "Online"],
                 key="uni"
             )
 
         with cols1[2]:
-            st.write("Carro:")
-            transporte = st.checkbox("Tem carro / moto",key="transp")
+            transporte = st.multiselect(
+                "Possui Veiculo:",
+                options=["Sim","Não"],
+                key="transp"
+            )
 
         with cols1[3]:
             componente = st.multiselect(
-                "Maquina",
-                options=['Notebook', 'Computador'],
+                "Maquina:",
+                options=["Notebook", "Computador"],
                 key="comp"
             )
 
         cols2 = st.columns([1, 1, 1, 1])
         with cols2[0]:
             disponibilidade = st.multiselect(
-                    "Disponibilidade",
-                    options=['Manhã', 'Tarde', 'Noite', 'Sábado'],
+                    "Disponibilidade:",
+                    options=["Manhã", "Tarde", "Noite", "Sábado"],
                     key="disp"
                 )
         with cols2[1]:
             modulos = st.multiselect(
-                    "Modulo",
+                    "Modulo:",
                     options=[f"stage {i}" for i in range(1, 13)],
                     key="mod"
                 )
             
         with cols2[2]:
             idiomas = st.multiselect(
-                    "Idioma",
-                    options=['Ingles', 'Espanhol'],
+                    "Idioma:",
+                    options=["Ingles", "Espanhol"],
                     key="idioma"
                 )
 
         with cols2[3]:
             categoria = st.multiselect(
-                    "Categoria",
+                    "Categoria:",
                     options=['VIP', 'CONV', 'In-Company', 'Kids'],
                     key="cat"
                 )
@@ -254,23 +239,28 @@ elif st.session_state["authentication_status"]:
             'Data': datetime.now(),
             'Categoria':[categoria]
             })
+            if 'df_disponibilidade' not in st.session_state:
+                st.session_state.df_disponibilidade = pd.DataFrame()
+
             if st.session_state.df_disponibilidade.empty:
+                
                 st.session_state.df_disponibilidade = row_df
             else:
                 st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
 
             st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
             st.success("Dados salvos com sucesso!")
+            st.dataframe(st.session_state.df_disponibilidade)
 
     # Terceira Página
     elif st.session_state.selected_page == "⏰ Tabela de Disponibilidade":
-        st.header("⏰ Tabela de Disponibilidade")
 
-        def deletar_linha(linha):
-            st.session_state.df_disponibilidade.drop(linha,inplace=True).reset_index(drop=True, inplace=True)
+        st.header("⏰ Tabela de Disponibilidade")
+        
+        num_professors = st.number_input("Escolha o número de professores:", min_value=1, max_value=100, value=50)
 
         if st.button("Gerar mock de professores"):
-            st.session_state['info_professors'] = mock_teach_df(50)
+            st.session_state['info_professors'] = mock_teach_df(num_professors)
             st.dataframe(st.session_state['info_professors'])
 
             st.markdown(
@@ -282,25 +272,6 @@ elif st.session_state["authentication_status"]:
                 </style>
                 """,
                 unsafe_allow_html=True
-            )
-
-            linha_disponivel = st.selectbox("Selecione a linha a ser deletada:", st.session_state.df_disponibilidade.index)
-
-            if st.button("Deletar linha"):
-                deletar_linha(linha_disponivel)
-
-        st.subheader("Exportar Dados para Excel")
-        if st.button("Exportar para Excel"):
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
-            buffer.seek(0)
-
-            st.download_button(
-                label="Baixar Excel",
-                data=buffer,
-                file_name="DISPONIBILIDADE_PROFESSORES.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
     # Quarta Página
