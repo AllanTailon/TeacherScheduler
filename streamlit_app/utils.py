@@ -108,7 +108,7 @@ def mock_teach_df(num_professors: int = 50) -> pd.DataFrame:
                                     'Maquinas': computador,
                                     'disponibilidade':disp,
                                     'Modulo':modulos,
-                                    'idiomas':idiomas}
+                                    'Idiomas':idiomas}
                                     )
     return info_professors
 # %%
