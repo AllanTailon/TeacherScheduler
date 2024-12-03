@@ -259,6 +259,12 @@ elif st.session_state["authentication_status"]:
         
         num_professors = st.number_input("Escolha o número de professores:", min_value=1, max_value=100, value=50)
 
+        if 'info_professors' not in st.session_state:
+            st.session_state['info_professors'] = None
+
+        if st.session_state['info_professors'] is not None:
+            st.dataframe(st.session_state['info_professors'])
+
         if st.button("Gerar mock de professores"):
             st.session_state['info_professors'] = mock_teach_df(num_professors)
             st.dataframe(st.session_state['info_professors'])
@@ -300,11 +306,14 @@ elif st.session_state["authentication_status"]:
                     df_tratado = pd.concat([aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True)
                     df_final = clean_data(df_tratado)
                     
-                    Ts = TeacherScheduler(df_final, st.session_state['info_professors'])
+                    df_dummie = treat_mock_df(st.session_state['info_professors'],['Unidades','Maquinas','disponibilidade','Modulo','idiomas','Automovel'])
+                    Ts = TeacherScheduler(df_final, df_dummie)
                     base_alocada = Ts.schedule_teachers()
+                    base_show = pd.merge(aulas_raw, base_alocada, on='Grupo', how='left')
+
 
                     st.write("Rotas Geradas!")
-                    st.dataframe(base_alocada)
+                    st.dataframe(base_show[['Professor','Grupo','Horário','Dias da Semana','MOD','STATUS']])
 
                     output = io.BytesIO()
                     with pd.ExcelWriter(output, engine="openpyxl") as writer:
