@@ -62,9 +62,20 @@ def gerar_lista_modulos():
     
     return lista_modulos
 
+def explode_multiple_columns(df, columns):
+    for col in columns:
+        df = df.explode(col, ignore_index=True)
+    return df
+
+def treat_mock_df(df, columns):
+    df_exploded = explode_multiple_columns(df, columns)
+    dum_prof = pd.get_dummies(df_exploded, columns=columns)
+    prof_treat = dum_prof.groupby('Professor').max().reset_index()
+    return prof_treat
+
 def gerar_combinacoes(opcoes):
     todas_combinacoes = []
-    for r in range(1, len(opcoes) + 1):  # Combinações de 1 até o tamanho da lista
+    for r in range(1, len(opcoes) + 1):
         combinacoes = itertools.combinations(opcoes, r)
         todas_combinacoes.extend(combinacoes)
     return [list(c) for c in todas_combinacoes]
