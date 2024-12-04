@@ -1,6 +1,9 @@
+#%%
 import pandas as pd
 import numpy as np
 import names
+import random
+import itertools
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
     hora_inicial = pd.to_datetime(row['Horário'], format='%H:%M:%S')
@@ -52,18 +55,71 @@ def base_selection(df: pd.DataFrame) -> tuple:
     aulas_simples['Horário'] = pd.to_datetime(aulas_simples['Horário'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
     return aulas_simples, doub, tri
 
-def mock_teach_df(num_professors: int = 50) -> pd.DataFrame:
-    nomes_distintos = set()  # Usar um conjunto para garantir a distinção
-    tem_carro = list(np.random.choice([0, 1], size=num_professors, p=[0.3, 0.7]))
-    espanhol = list(np.random.choice([0, 1], size=num_professors, p=[0.8, 0.2]))
-    tem_pc = list(np.random.choice([0, 1], size=num_professors, p=[0.2, 0.8]))
+def gerar_lista_modulos():
+    num_opcoes = random.randint(10, 13)
+    
+    lista_modulos = [f"Modulo {i}" for i in random.sample(range(1, 14), num_opcoes)]
+    
+    return lista_modulos
 
+def explode_multiple_columns(df, columns):
+    for col in columns:
+        df = df.explode(col, ignore_index=True)
+    return df
+
+def treat_mock_df(df, columns):
+    df_exploded = explode_multiple_columns(df, columns)
+    dum_prof = pd.get_dummies(df_exploded, columns=columns)
+    prof_treat = dum_prof.groupby('Professor').max().reset_index()
+    return prof_treat
+
+def gerar_combinacoes(opcoes):
+    todas_combinacoes = []
+    for r in range(1, len(opcoes) + 1):
+        combinacoes = itertools.combinations(opcoes, r)
+        todas_combinacoes.extend(combinacoes)
+    return [list(c) for c in todas_combinacoes]
+
+def rand_choice(combinations,sizes,prob):
+    escolhas = np.random.choice(len(combinations), size=sizes, p=prob)
+    choices = [combinations[i] for i in escolhas]
+    return choices
+
+def mock_teach_df(num_professors: int = 50) -> pd.DataFrame:
+    
+    nomes_distintos = set()  # Usar um conjunto para garantir a distinção
+    opcoes_automovel = ["Sim", "Não"]
+    opcoes_idioma = ["Ingles", "Espanhol"]
+    opcoes_pc = ["Notebook", "Computador"]
+    opcoes_unidade = ["Satélite", "Vicentina", "Jardim", "Online"]
+    opcoes_disp = ["Manha","Tarde","Noite","Sabado"]
+
+    resultado_comp = gerar_combinacoes(opcoes_pc)
+    resultado_unidade = gerar_combinacoes(opcoes_unidade)
+    resultado_idioma = gerar_combinacoes(opcoes_idioma)
+    resultado_disponibilidade = gerar_combinacoes(opcoes_disp)
+
+    # Gerar as opções para cada característica
+    automoveis = list(np.random.choice(opcoes_automovel, size=num_professors, p=[0.7, 0.3]))
+    idiomas = rand_choice(resultado_idioma,num_professors,[0.7, 0.1, 0.2])
+    computador = rand_choice(resultado_comp,num_professors,[0.4, 0.2, 0.4])
+    unidades = rand_choice(resultado_unidade,num_professors,[0]+[0.05] * 12 + [0.2, 0.2])
+    disp = rand_choice(resultado_disponibilidade,num_professors,[0]+[0.05] * 12 + [0.2, 0.2])
+    modulos = [gerar_lista_modulos() for _ in range(num_professors)]
+    
     while len(nomes_distintos) < num_professors:
         primeiro_nome = names.get_first_name()
         nomes_distintos.add(primeiro_nome)
         
     nomes_distintos = list(nomes_distintos)
 
-    info_professors = pd.DataFrame({'professor': nomes_distintos, 'tem_carro': tem_carro, 'fala_espanhol': espanhol, 'tem_pc': tem_pc})
+    info_professors = pd.DataFrame({'Professor': nomes_distintos,
+                                    'Unidades':unidades,
+                                    'Automovel': automoveis,
+                                    'Maquinas': computador,
+                                    'disponibilidade':disp,
+                                    'Modulo':modulos,
+                                    'idiomas':idiomas}
+                                    )
     return info_professors
-
+# %%
