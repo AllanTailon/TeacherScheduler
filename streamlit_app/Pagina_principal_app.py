@@ -143,25 +143,13 @@ elif st.session_state["authentication_status"]:
 
         st.title("🏠 Welcome to Teacher Scheduler!")
 
-        st.subheader("📖 Manual de Utilização:")
-
         st.markdown(
             """
-        📊 Coleta de Informações
-        No início, utilizamos um website chamado Streamlit, onde foi desenvolvido um serviço para coletar informações destinadas a um dashboard de disponibilidade de horários. Essas informações serão armazenadas em um arquivo Excel, que pode ser carregado diretamente através do site.
-
-        ⏰ Tabela de Disponibilidade
-        Com base nas informações coletadas, é gerada uma tabela de disponibilidade contendo as condições especificadas. Essa tabela pode ser exportada como um relatório no formato Excel.
-
-        📅 Planejador de Rotas
-        O projeto final consiste em um planejador de rotas, que utiliza todas as informações coletadas para alocar os professores em suas respectivas turmas, considerando as condições específicas de cada um. O resultado também pode ser exportado como um relatório no formato Excel.
-
-        📞 Adicional: Abertura de Chamados
-        O sistema conta com a funcionalidade adicional de abertura de chamados para solicitar ajuda, caso necessário.
+        RESUMO DE COMO USAR AQUI
         """
         )
 
-        login_image_path = "streamlit_app/images/diagram.png"
+        login_image_path = "streamlit_app/images/gato.jpg"
         login_image = load_image(login_image_path)
 
         st.markdown(
@@ -172,161 +160,107 @@ elif st.session_state["authentication_status"]:
             """,
             unsafe_allow_html=True
         )
-
+    
 
     # Segunda Página
     elif st.session_state.selected_page == "👨‍🏫 Dashboard de Professores":
         st.header("👨‍🏫 Dashboard de Disponibilidade")
 
-        def carregar_dados():
-            colunas = ['Professor', 'Satélite', 'Vicentina', 'Jardim', 'Online', 
-                    'Manhã', 'Tarde', 'Noite', 'Sábado', 'Notebook', 'Computador',
-                    'Carro', 'Moto', 'Ingles', 'Espanhol', 'VIP', 'CONV',
-                    'In-Company', 'Kids', 'Data']
-            try:
-                if os.path.exists("disponibilidade.csv"):
-                    df = pd.read_csv("disponibilidade.csv")
-                    if df.empty:
-                        return pd.DataFrame(columns=colunas)
-                    df = df[colunas]
-                    return df.fillna(0)
-            except Exception as e:
-                print(f"Erro ao ler o arquivo: {e}")
-                return pd.DataFrame(columns=colunas)
-
-        def deletar_linha(index):
-            st.session_state.df_disponibilidade.drop(index, inplace=True)
-            st.session_state.df_disponibilidade.reset_index(drop=True, inplace=True)
-            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv", index=False)
-
-        if 'df_disponibilidade' not in st.session_state:
-            st.session_state.df_disponibilidade = carregar_dados()
-
         nomes_iniciais = ['Professor A']
 
         if 'disponibilidade' not in st.session_state:
-            st.session_state.disponibilidade = {nome: {} for nome in nomes_iniciais}
-
+            st.session_state.disponibilidade = {nome: {} for nome in nomes_iniciais}            
+    
         st.subheader("Tabela de Disponibilidade:")
 
         cols1 = st.columns([1, 1, 1, 1])
         with cols1[0]:
-            nome_professor = st.text_input("Nome do professor", placeholder="Digite o nome", key="nome")
+            nome_professor = st.text_input("Nome do professor",placeholder="Digite o nome", key="nome")
 
         with cols1[1]:
             unidades = st.multiselect(
-                "Unidades",
-                options=['Satélite', 'Vicentina', 'Jardim', 'Online'],
+                "Unidades:",
+                options=["Satélite", "Vicentina", "Jardim", "Online"],
                 key="uni"
             )
 
         with cols1[2]:
             transporte = st.multiselect(
-                "Possui automovel",
-                options=['Sim', 'Não'],
-                key="trpt"
+                "Possui Veiculo:",
+                options=["Sim","Não"],
+                key="transp"
             )
 
         with cols1[3]:
             componente = st.multiselect(
-                "Máquina",
-                options=['Notebook', 'Computador'],
+                "Maquina:",
+                options=["Notebook", "Computador"],
                 key="comp"
             )
 
         cols2 = st.columns([1, 1, 1, 1])
         with cols2[0]:
             disponibilidade = st.multiselect(
-                "Disponibilidade",
-                options=['Manhã', 'Tarde', 'Noite', 'Sábado'],
-                key="disp"
-            )
+                    "Disponibilidade:",
+                    options=["Manhã", "Tarde", "Noite", "Sábado"],
+                    key="disp"
+                )
         with cols2[1]:
             modulos = st.multiselect(
-                "Módulo",
-                options=[f"stage {i}" for i in range(1, 13)],
-                key="mod"
-            )
-
+                    "Modulo:",
+                    options=[f"stage {i}" for i in range(1, 13)],
+                    key="mod"
+                )
+            
         with cols2[2]:
             idiomas = st.multiselect(
-                "Idioma",
-                options=['Ingles', 'Espanhol'],
-                key="idioma"
-            )
+                    "Idioma:",
+                    options=["Ingles", "Espanhol"],
+                    key="idioma"
+                )
 
         with cols2[3]:
             categoria = st.multiselect(
-                "Categoria",
-                options=['VIP', 'CONV', 'In-Company', 'Kids'],
-                key="cat"
-            )
+                    "Categoria:",
+                    options=['VIP', 'CONV', 'In-Company', 'Kids'],
+                    key="cat"
+                )
 
         if st.button("Salvar"):
-            unidades_bin = {
-                'Satélite': 1 if 'Satélite' in unidades else 0,
-                'Vicentina': 1 if 'Vicentina' in unidades else 0,
-                'Jardim': 1 if 'Jardim' in unidades else 0,
-                'Online': 1 if 'Online' in unidades else 0,
-            }
-
-            transporte_bin = {
-                'Carro': 1 if 'Carro' in transporte else 0,
-                'Moto': 1 if 'Moto' in transporte else 0,
-            }
-
-            disponibilidade_bin = {
-                'Manhã': 1 if 'Manhã' in disponibilidade else 0,
-                'Tarde': 1 if 'Tarde' in disponibilidade else 0,
-                'Noite': 1 if 'Noite' in disponibilidade else 0,
-                'Sábado': 1 if 'Sábado' in disponibilidade else 0,
-            }
-
-            maquinas_bin = {
-                'Notebook': 1 if 'Notebook' in componente else 0,
-                'Computador': 1 if 'Computador' in componente else 0,
-            }
-
-            idiomas_bin = {
-                'Ingles': 1 if 'Ingles' in idiomas else 0,
-                'Espanhol': 1 if 'Espanhol' in idiomas else 0,
-            }
-
-            categoria_bin = {
-                'VIP': 1 if 'VIP' in categoria else 0,
-                'CONV': 1 if 'CONV' in categoria else 0,
-                'In-Company': 1 if 'In-Company' in categoria else 0,
-                'Kids': 1 if 'Kids' in categoria else 0,
-            }
 
             row_df = pd.DataFrame({
-                'Professor': [nome_professor],
-                **unidades_bin,
-                **transporte_bin,
-                **disponibilidade_bin,
-                **maquinas_bin,
-                **idiomas_bin,
-                **categoria_bin,
-                'Data': [datetime.now()]
+            'Professor': nome_professor,
+            'Unidades': [unidades],
+            'Carro': transporte,
+            'Máquinas': [componente],
+            'Disponibilidade': [disponibilidade],
+            'Módulo': [modulos],
+            'Idioma': [idiomas],
+            'Data': datetime.now(),
+            'Categoria':[categoria]
             })
+            if 'df_disponibilidade' not in st.session_state:
+                st.session_state.df_disponibilidade = pd.DataFrame()
 
             if st.session_state.df_disponibilidade.empty:
+                
                 st.session_state.df_disponibilidade = row_df
             else:
                 st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
 
-            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv", index=False)
+            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
             st.success("Dados salvos com sucesso!")
+            st.dataframe(st.session_state.df_disponibilidade)
 
     # Terceira Página
     elif st.session_state.selected_page == "⏰ Tabela de Disponibilidade":
-        st.header("⏰ Tabela de Disponibilidade")
 
-        def deletar_linha(linha):
-            st.session_state.df_disponibilidade.drop(linha,inplace=True).reset_index(drop=True, inplace=True)
+        st.header("⏰ Tabela de Disponibilidade")
+        
+        num_professors = st.number_input("Escolha o número de professores:", min_value=1, max_value=100, value=50)
 
         if st.button("Gerar mock de professores"):
-            st.session_state['info_professors'] = mock_teach_df(50)
+            st.session_state['info_professors'] = mock_teach_df(num_professors)
             st.dataframe(st.session_state['info_professors'])
 
             st.markdown(
@@ -340,25 +274,6 @@ elif st.session_state["authentication_status"]:
                 unsafe_allow_html=True
             )
 
-            linha_disponivel = st.selectbox("Selecione a linha a ser deletada:", st.session_state.df_disponibilidade.index)
-
-            if st.button("Deletar linha"):
-                deletar_linha(linha_disponivel)
-
-        st.subheader("Exportar Dados para Excel")
-        if st.button("Exportar para Excel"):
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                st.session_state.df_disponibilidade.to_excel(writer, index=False, sheet_name='Disponibilidade')
-            buffer.seek(0)
-
-            st.download_button(
-                label="Baixar Excel",
-                data=buffer,
-                file_name="DISPONIBILIDADE_PROFESSORES.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
     # Quarta Página
     elif st.session_state.selected_page == "📅 Planejador de rota":
         st.header("📅 Planejador de rota")
@@ -366,6 +281,11 @@ elif st.session_state["authentication_status"]:
         uploaded_file = st.file_uploader(
             "Upload do arquivo das turmas", type=["xlsx"]
         )
+        if 'aulas_raw' not in st.session_state:
+            st.session_state['aulas_raw'] = None
+
+        if st.session_state['aulas_raw'] is not None:
+            st.dataframe(st.session_state['aulas_raw'])
 
         if uploaded_file:
             aulas_raw = pd.read_excel(uploaded_file,header=1)
