@@ -1,2 +1,2 @@
-Professor,Satélite,Vicentina,Jardim,Online,Carro,Moto,Manhã,Tarde,Noite,Sábado,Notebook,Computador,Ingles,Espanhol,VIP,CONV,In-Company,Kids,Data
-Bruno Morgillo,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,2024-11-27 15:44:00.142930
+,Professor,Unidades,Carro,Máquinas,Disponibilidade,Módulo,Idioma,Data,Categoria
+0,Carlos,"['Vicentina', 'Online', 'Satélite']",Sim,['Notebook'],['Tarde'],"['stage 4', 'stage 7', 'stage 3', 'stage 5']","['Espanhol', 'Ingles']",2024-12-06 10:38:06.661606,"['CONV', 'Kids', 'In-Company']"
