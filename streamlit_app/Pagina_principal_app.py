@@ -344,7 +344,7 @@ elif st.session_state["authentication_status"]:
             'Máquinas': [componente],
             'Disponibilidade': [disponibilidade],
             'Módulo': [modulos],
-            'Idioma': [idiomas],
+            'Idiomas': [idiomas],
             'Data': datetime.now(),
             'Categoria':[categoria]
             })
@@ -420,7 +420,7 @@ elif st.session_state["authentication_status"]:
                     df_tratado = pd.concat([aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True)
                     df_final = clean_data(df_tratado)
                     
-                    df_dummie = treat_mock_df(st.session_state['info_professors'],['Unidades','Maquinas','disponibilidade','Modulo','idiomas','Automovel'])
+                    df_dummie = treat_mock_df(st.session_state['info_professors'],['Unidades','Maquinas','disponibilidade','Modulo','Idiomas','Automovel'])
                     Ts = TeacherScheduler(df_final, df_dummie)
                     
                     base_alocada = Ts.schedule_teachers()
