@@ -336,30 +336,33 @@ elif st.session_state["authentication_status"]:
                 )
 
         if st.button("Salvar"):
-
-            row_df = pd.DataFrame({
-            'Professor': nome_professor,
-            'Unidades': [unidades],
-            'Carro': transporte,
-            'Máquinas': [componente],
-            'Disponibilidade': [disponibilidade],
-            'Módulo': [modulos],
-            'Idioma': [idiomas],
-            'Data': datetime.now(),
-            'Categoria':[categoria]
-            })
-            if 'df_disponibilidade' not in st.session_state:
-                st.session_state.df_disponibilidade = pd.DataFrame()
-
-            if st.session_state.df_disponibilidade.empty:
-                
-                st.session_state.df_disponibilidade = row_df
+            
+            if 1==1:
+                print(transporte)
             else:
-                st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
+                row_df = pd.DataFrame({
+                'Professor': nome_professor,
+                'Unidades': [unidades],
+                'Carro': transporte,
+                'Máquinas': [componente],
+                'Disponibilidade': [disponibilidade],
+                'Módulo': [modulos],
+                'idiomas': [idiomas],
+                'Data': datetime.now(),
+                'Categoria':[categoria]
+                })
+                if 'df_disponibilidade' not in st.session_state:
+                    st.session_state.df_disponibilidade = pd.DataFrame()
 
-            st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
-            st.success("Dados salvos com sucesso!")
-            st.dataframe(st.session_state.df_disponibilidade)
+                if st.session_state.df_disponibilidade.empty:
+                    
+                    st.session_state.df_disponibilidade = row_df
+                else:
+                    st.session_state.df_disponibilidade = pd.concat([st.session_state.df_disponibilidade, row_df], ignore_index=True)
+
+                st.session_state.df_disponibilidade.to_csv("disponibilidade.csv")
+                st.success("Dados salvos com sucesso!")
+                st.dataframe(st.session_state.df_disponibilidade)
 
     # Terceira Página
     elif st.session_state.selected_page == "⏰ Tabela de Disponibilidade":
