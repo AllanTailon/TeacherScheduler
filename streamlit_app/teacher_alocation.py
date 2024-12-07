@@ -109,13 +109,13 @@ class TeacherScheduler:
                 if status == 'PRESENCIAL':
                     horario_da_turma, unidade_da_turma = self.df_class.loc[
                         (self.df_class['Grupo'] == j) & (self.df_class['Dias da Semana'] == x),
-                        ['horario_tratado', 'Unidades']
+                        ['horario_tratado', 'Unidade']
                     ].values[0]
                     
                     grupos_seguidos = self.df_class.loc[
                         (self.df_class['Dias da Semana'] == x) & 
                         (self.df_class['Horário'] == (horario_da_turma + pd.Timedelta(hours=1)).strftime('%H:%M:%S')) & 
-                        (self.df_class['Unidades'] != unidade_da_turma) & 
+                        (self.df_class['Unidade'] != unidade_da_turma) & 
                         (self.df_class['STATUS'] == 'PRESENCIAL'), 
                         'Grupo'
                     ].unique()
@@ -130,19 +130,19 @@ class TeacherScheduler:
     def add_online_constraints(self):
         # Restrição: Professores sem computador não podem dar aulas online
 
-        for i in self.df_teach.loc[self.df_teach['Maquinas'] == 0, 'Professor'].to_list():
+        for i in self.df_teach.loc[((self.df_teach['Maquinas_Notebook'] == 0)&(self.df_teach['Maquinas_Computador'] == 0)), 'Professor'].to_list():
             for g in self.df_class.loc[self.df_class['STATUS'] == 'ONLINE']['Grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_language_constraints(self):
         # Restrição: Professores que não falam espanhol não podem dar aulas de espanhol
 
-        for i in self.df_teach.loc[self.df_teach['Idiomas'] == 0, 'Professor'].to_list():
+        for i in self.df_teach.loc[self.df_teach['idiomas_Espanhol'] == 0, 'Professor'].to_list():
             for g in self.df_class.loc[self.df_class['MOD'].str.contains('Espanhol', na=False)]['Grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def solve(self):
-        # Resolver o modelo e alocar os professores
+        # Resolver o modelo e alocar os Professores
         solver = cp_model.CpSolver()
         status = solver.Solve(self.model)
 
@@ -156,5 +156,3 @@ class TeacherScheduler:
                         prof_alocados = pd.concat([prof_alocados, aloca], ignore_index=True)
 
         return prof_alocados
-
-
