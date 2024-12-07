@@ -141,26 +141,140 @@ elif st.session_state["authentication_status"]:
                     """
         st.markdown(hide_st_style, unsafe_allow_html=True)
 
-        st.title("🏠 Welcome to Teacher Scheduler!")
+        st.title("📘 Manual de Usuário")
+
+        st.divider()
+
+        def load_image(image_path):
+            return Image.open(image_path)
+        
+        st.header("1. Autenticação")
 
         st.markdown(
             """
-        RESUMO DE COMO USAR AQUI
-        """
+            • Fazer o Login no website com as credenciais fornecidas.
+            """
         )
 
-        login_image_path = "streamlit_app/images/gato.jpg"
-        login_image = load_image(login_image_path)
+        
+        login_image_path = "streamlit_app/images/pagina1.png"
+        login_image_1 = load_image(login_image_path)
+        st.image(login_image_1, use_column_width=True)
+
+        st.divider()
+
+        st.header("2. Navegação pelo site")
 
         st.markdown(
-            f"""
-            <div style="text-align: center;">
-                <img src="data:image/png;base64,{login_image}" width="800">
-            </div>
-            """,
-            unsafe_allow_html=True
+            """
+            • 1ª Página: "Página Principal" contém as informações necessárias sobre como utilizar o website. \n
+            • 2ª Página: "Dashboard de Professores" contém a tabela de disponibilidade para coleta de dados dos professores. \n
+            • 3ª Página: "Tabela de Disponibilidade" apresenta um Mock de professores com suas respectivas condições. \n
+            • 4ª Página: "Planejador de Rota" transforma os dados e condições coletados pelo dashboard e gera uma Rota. \n
+            • 5ª Página: "Contate-nos" disponibiliza um atendimento com aberturas de chamados para a manutenção ou soluções. \n
+            """
         )
-    
+
+        login_image_path_2 = "streamlit_app/images/pagina2.png"
+        login_image_2 = load_image(login_image_path_2)
+        st.image(login_image_2, use_column_width=True)
+
+        st.divider()
+
+        st.header("3. Definindo Condições")
+
+        st.markdown(
+            """
+            1° Acesse a página: "Dashboard de Disponibilidade . \n
+            2° Preencha os dados na "Tabela de Disponibilidade" seguindo o padrão das Checkboxes com suas opções. \n
+            3° Clique no botão "Salvar" para armazenamento dos dados. \n
+            """
+        )
+
+        login_image_path_3 = "streamlit_app/images/pagina3.png"
+        login_image_3 = load_image(login_image_path_3)
+        st.image(login_image_3, use_column_width=True)
+
+        st.divider()
+
+        st.header("4. Verificando o Mock de Professores")
+
+        st.markdown(
+            """
+            1° Acesse a página: "Tabela de Disponibilidade . \n
+            2° Na página é possível localizar os dados coletados e tratados após o preenchimento do Dashboard. \n
+            """
+        )
+
+        # PRECISO DE AJUDA ALLAN
+        # login_image_path_4 = "streamlit_app/images/pagina4.png"
+        # login_image_4 = load_image(login_image_path_4)
+        # st.image(login_image_4, use_column_width=True)
+
+        st.divider()
+
+        st.header("5. Gerando uma Rota")
+
+        st.markdown(
+            """
+            1° Acesse a página: "Planejador de Rota". \n
+            2° Na página, será preciso subir o arquivo original da Rota em Excel. \n
+            """
+        )
+
+        login_image_path_5 = "streamlit_app/images/pagina5.png"
+        login_image_5 = load_image(login_image_path_5)
+        st.image(login_image_5, use_column_width=True)
+
+        st.divider()
+
+        st.header("5.1. Gerando uma Rota")
+
+        st.markdown(
+            """
+            1° Após o upload da planilha da Rota, será criado um botão para gerar uma rota. \n
+            2° Clique no botão e estará pronto em alguns instantes. \n
+            """
+        )
+
+        login_image_path_6 = "streamlit_app/images/pagina6.png"
+        login_image_6 = load_image(login_image_path_6)
+        st.image(login_image_6, use_column_width=True)
+
+        st.divider()
+
+        st.header("6. Rota finalizada")
+
+        st.markdown(
+            """
+            1° Após o gerenciamento e alocação de professores for finalizada com sucesso, você poderá exportar para arquivo um EXCEL. \n
+            """
+        )
+
+        # login_image_path_7 = "streamlit_app/images/pagina7.png"
+        # login_image_7 = load_image(login_image_path_7)
+        # st.image(login_image_7, use_column_width=True)
+
+        st.divider()
+
+        st.header("7. Abertura de Chamado")
+
+        st.markdown(
+            """
+            • Caso seja necessário um apoio da equipe de TI para manutenção/melhorias, favor contactar por meio de aberturas de chamado. \n
+
+            1° Preencha os campos com seus dados e a equipe de Service Desk entrará em ação. \n
+            """
+        )
+
+        login_image_path_8 = "streamlit_app/images/pagina8.png"
+        login_image_8 = load_image(login_image_path_8)
+        st.image(login_image_8, use_column_width=True)
+
+
+
+
+
 
     # Segunda Página
     elif st.session_state.selected_page == "👨‍🏫 Dashboard de Professores":
@@ -335,7 +449,7 @@ elif st.session_state["authentication_status"]:
             <input type="text" name="name" placeholder="Digite seu nome" required>
             <input type="email" name="email" placeholder="Digite seu e-mail" required>
             <textarea name="message" placeholder="Digite sua mensagem"></textarea>
-            <button type="submit">Send</button>
+            <button type="submit">Enviar</button>
         </form>
         """
         st.markdown(contact_form, unsafe_allow_html=True)
