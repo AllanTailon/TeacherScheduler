@@ -137,7 +137,7 @@ class TeacherScheduler:
     def add_language_constraints(self):
         # Restrição: Professores que não falam espanhol não podem dar aulas de espanhol
 
-        for i in self.df_teach.loc[self.df_teach['idiomas_Espanhol'] == 0, 'Professor'].to_list():
+        for i in self.df_teach.loc[self.df_teach['Idiomas_Espanhol'] == 0, 'Professor'].to_list():
             for g in self.df_class.loc[self.df_class['MOD'].str.contains('Espanhol', na=False)]['Grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
 
