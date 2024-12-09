@@ -201,15 +201,14 @@ elif st.session_state["authentication_status"]:
 
         st.markdown(
             """
-            1° Acesse a página: "Tabela de Disponibilidade . \n
+            1° Acesse a página: "Tabela de Disponibilidade". \n
             2° Na página é possível localizar os dados coletados e tratados após o preenchimento do Dashboard. \n
             """
         )
 
-        # PRECISO DE AJUDA ALLAN
-        # login_image_path_4 = "streamlit_app/images/pagina4.png"
-        # login_image_4 = load_image(login_image_path_4)
-        # st.image(login_image_4, use_column_width=True)
+        login_image_path_4 = "streamlit_app/images/pagina4.png"
+        login_image_4 = load_image(login_image_path_4)
+        st.image(login_image_4, use_column_width=True)
 
         st.divider()
 
@@ -251,9 +250,9 @@ elif st.session_state["authentication_status"]:
             """
         )
 
-        # login_image_path_7 = "streamlit_app/images/pagina7.png"
-        # login_image_7 = load_image(login_image_path_7)
-        # st.image(login_image_7, use_column_width=True)
+        login_image_path_7 = "streamlit_app/images/pagina7.png"
+        login_image_7 = load_image(login_image_path_7)
+        st.image(login_image_7, use_column_width=True)
 
         st.divider()
 
