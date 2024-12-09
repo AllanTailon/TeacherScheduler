@@ -395,11 +395,11 @@ elif st.session_state["authentication_status"]:
         uploaded_file = st.file_uploader(
             "Upload do arquivo das turmas", type=["xlsx"]
         )
-        if 'aulas_raw' not in st.session_state:
-            st.session_state['aulas_raw'] = None
+        if 'aulas_rotas' not in st.session_state:
+            st.session_state['aulas_rotas'] = None
 
-        if st.session_state['aulas_raw'] is not None:
-            st.dataframe(st.session_state['aulas_raw'])
+        if st.session_state['aulas_rotas'] is not None:
+            st.dataframe(st.session_state['aulas_rotas'])
 
         if uploaded_file:
             aulas_raw = pd.read_excel(uploaded_file,header=1)
@@ -427,6 +427,7 @@ elif st.session_state["authentication_status"]:
 
                     st.write("Rotas Geradas!")
                     st.dataframe(base_show[['Professor','Grupo','Horário','Dias da Semana','MOD','STATUS']])
+                    st.session_state['aulas_rotas'] = base_show[['Professor','Grupo','Horário','Dias da Semana','MOD','STATUS']].copy()
 
                     output = io.BytesIO()
                     with pd.ExcelWriter(output, engine="openpyxl") as writer:
