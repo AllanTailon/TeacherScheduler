@@ -151,13 +151,13 @@ class TeacherScheduler:
 
         for g in self.df_class['Grupo'].unique():
             for i in self.df_teach['TEACHER'].unique():
-                time_class = self.df_class.loc[self.df_class['Grupo'] == g, 'Horário'].values[0]
+                time_class = self.df_class.loc[self.df_class['Grupo'] == g, 'Horário'].values[0] # existe turma que tem dois horarios distintos
                 if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].values[0] == 0:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
         #for i in self.df_teach['TEACHER'].unique():
         #    for x in self.df_class['Dias da Semana'].unique():
-        #        turmas_do_dia = self.df_class[self.df_class['Dias da Semana']==x]['Grupo'].unique()
+        #        turmas_do_dia = self.df_class[self.df_class['Dias da Semana']==x]['Grupo'].unique() # esse codigo nao está funcionando
         #        if self.df_teach[self.df_teach['TEACHER']==i][x].values[0] == 0:
         #            for g in turmas_do_dia:
         #                self.model.Add(self.alocacoes[(i, g)] == 0)
