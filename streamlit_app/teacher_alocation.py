@@ -9,7 +9,7 @@ class TeacherScheduler:
     Atributos:
     ----------
     df_class : pd.DataFrame
-        DataFrame contendo os dados das aulas, incluindo colunas como 'Grupo', 'Horário', 'Dias da Semana', 'STATUS', 'Unidade', etc.
+        DataFrame contendo os dados das aulas, incluindo colunas como 'nome grupo', 'horario', 'dias da semana', 'status', 'unidade', etc.
     df_teach : pd.DataFrame
         DataFrame contendo as informações dos professores, contendo colunas como nome, competência em idiomas, uso de computador, etc.
     alocacoes : dict
@@ -79,46 +79,46 @@ class TeacherScheduler:
     def create_variables(self):
         # Criação das variáveis de alocação
         for i in self.df_teach['TEACHER'].unique():
-            for g in self.df_class['Grupo'].unique():
+            for g in self.df_class['nome grupo'].unique():
                 self.alocacoes[(i, g)] = self.model.NewBoolVar(f"{i}_converinglesson_{g}")
 
     def add_teacher_constraints(self):
         # Restrição: Apenas um professor por grupo
-        for g in self.df_class['Grupo'].unique():
+        for g in self.df_class['nome grupo'].unique():
             self.model.Add(sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique()) == 1)
 
     def add_schedule_constraints(self):
         # Restrição: Professores não podem ser alocados em mais de um grupo no mesmo horário
 
-        for h in self.df_class['Horário'].unique():
-            for d in self.df_class['Dias da Semana'].unique():
+        for h in self.df_class['horario'].unique():
+            for d in self.df_class['dias da semana'].unique():
                 grupos_no_mesmo_horario = self.df_class.loc[
-                    (self.df_class['Horário'] == h) & 
-                    (self.df_class['Dias da Semana'] == d)
-                ]['Grupo'].unique()
+                    (self.df_class['horario'] == h) & 
+                    (self.df_class['dias da semana'] == d)
+                ]['nome grupo'].unique()
                 
                 for i in self.df_teach['TEACHER'].unique():
                     self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_no_mesmo_horario) <= 1)
 
     def add_consecutive_group_constraints(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
-        for x in self.df_class['Dias da Semana'].unique():
-            for j in self.df_class['Grupo'].unique():
-                if self.df_class.loc[(self.df_class['Grupo'] == j) & (self.df_class['Dias da Semana'] == x), 'Horário'].empty:
+        for x in self.df_class['dias da semana'].unique():
+            for j in self.df_class['nome grupo'].unique():
+                if self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'horario'].empty:
                     continue
-                status = self.df_class.loc[(self.df_class['Grupo'] == j) & (self.df_class['Dias da Semana'] == x), 'STATUS'].values[0]
+                status = self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'status'].values[0]
                 if status == 'PRESENCIAL':
                     horario_da_turma, unidade_da_turma = self.df_class.loc[
-                        (self.df_class['Grupo'] == j) & (self.df_class['Dias da Semana'] == x),
-                        ['horario_tratado', 'Unidade']
+                        (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x),
+                        ['horario_tratado', 'unidade']
                     ].values[0]
                     
                     grupos_seguidos = self.df_class.loc[
-                        (self.df_class['Dias da Semana'] == x) & 
-                        (self.df_class['Horário'] == (horario_da_turma + pd.Timedelta(hours=1)).strftime('%H:%M:%S')) & 
-                        (self.df_class['Unidade'] != unidade_da_turma) & 
-                        (self.df_class['STATUS'] == 'PRESENCIAL'), 
-                        'Grupo'
+                        (self.df_class['dias da semana'] == x) & 
+                        (self.df_class['horario'] == (horario_da_turma + pd.Timedelta(hours=1)).strftime('%H:%M:%S')) & 
+                        (self.df_class['unidade'] != unidade_da_turma) & 
+                        (self.df_class['status'] == 'PRESENCIAL'), 
+                        'nome grupo'
                     ].unique()
 
                     grupos_seguidos = list(grupos_seguidos)
@@ -132,48 +132,48 @@ class TeacherScheduler:
         # Restrição: Professores que não falam espanhol não podem dar aulas de espanhol
 
         for i in self.df_teach.loc[self.df_teach['Espanhol'] == 0, 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['MODALIDADE'] == 'ESPANHOL', 'Grupo'].unique():
+            for g in self.df_class.loc[self.df_class['modalidade'] == 'ESPANHOL', 'nome grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] ==0)
 
     def add_online_constraints(self):
         # Restrição: Professores não podem dar aulas online
 
         for i in self.df_teach.loc[(self.df_teach['ONLINE'] == 0), 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['STATUS'] == 'ONLINE']['Grupo'].unique():
+            for g in self.df_class.loc[self.df_class['status'] == 'ONLINE']['nome grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
         
         for i in self.df_teach.loc[self.df_teach['PRESENCIAL'] == 0, 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['STATUS']=='PRESENCIAL']['Grupo'].unique():
+            for g in self.df_class.loc[self.df_class['status']=='PRESENCIAL']['nome grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
     
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis
 
-        for g in self.df_class['Grupo'].unique():
-            for i in self.df_teach['TEACHER'].unique():
-                time_class = self.df_class.loc[self.df_class['Grupo'] == g, 'Horário'].values[0] # existe turma que tem dois horarios distintos
-                if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].values[0] == 0:
-                    self.model.Add(self.alocacoes[(i, g)] == 0)
+        # for g in self.df_class['nome grupo'].unique():
+        #     for i in self.df_teach['TEACHER'].unique():
+        #         time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].values[0] # existe turma que tem dois horarios distintos
+        #         if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].values[0] == 0:
+        #             self.model.Add(self.alocacoes[(i, g)] == 0)
 
-        #for i in self.df_teach['TEACHER'].unique():
-        #    for x in self.df_class['Dias da Semana'].unique():
-        #        turmas_do_dia = self.df_class[self.df_class['Dias da Semana']==x]['Grupo'].unique() # esse codigo nao está funcionando
-        #        if self.df_teach[self.df_teach['TEACHER']==i][x].values[0] == 0:
-        #            for g in turmas_do_dia:
-        #                self.model.Add(self.alocacoes[(i, g)] == 0)
+        for i in self.df_teach['TEACHER'].unique():
+            for x in self.df_class['dias da semana'].unique():
+                turmas_do_dia = self.df_class[self.df_class['dias da semana']==x]['nome grupo'].unique() # esse codigo nao está funcionando
+                if self.df_teach[self.df_teach['TEACHER']==i][x].values[0] == 0:
+                    for g in turmas_do_dia:
+                        self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def solve(self):
         # Resolver o modelo e alocar os Professores
         solver = cp_model.CpSolver()
         status = solver.Solve(self.model)
 
-        prof_alocados = pd.DataFrame(columns=['Professor', 'Grupo'])
+        prof_alocados = pd.DataFrame(columns=['Professor', 'nome grupo'])
 
         if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
-            for g in self.df_class['Grupo'].unique():
+            for g in self.df_class['nome grupo'].unique():
                 for i in self.df_teach['TEACHER'].unique():
                     if solver.Value(self.alocacoes[(i, g)]):
-                        aloca = pd.DataFrame({'Professor': [i], 'Grupo': [g]})
+                        aloca = pd.DataFrame({'Professor': [i], 'nome grupo': [g]})
                         prof_alocados = pd.concat([prof_alocados, aloca], ignore_index=True)
 
         return prof_alocados

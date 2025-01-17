@@ -6,17 +6,17 @@ import random
 import itertools
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
-    hora_inicial = pd.to_datetime(row['Horário'], format='%H:%M:%S')
+    hora_inicial = pd.to_datetime(row['horario'], format='%H:%M:%S')
     novas_linhas = []
     for i in range(times):
         nova_linha = row.copy()
-        nova_linha['Horário'] = (hora_inicial + pd.Timedelta(hours=i)).strftime('%H:%M:%S')
+        nova_linha['horario'] = (hora_inicial + pd.Timedelta(hours=i)).strftime('%H:%M:%S')
         novas_linhas.append(nova_linha)
     return pd.DataFrame(novas_linhas)
 
 def desaninhar_dias(df):
-    df['Dias da Semana'] = df['Dias da Semana'].str.split(',')
-    df = df.explode('Dias da Semana')
+    df['dias da semana'] = df['dias da semana'].str.split(',')
+    df = df.explode('dias da semana')
     return df
 
 def expand_rows( df: pd.DataFrame, func) -> pd.DataFrame:
@@ -24,15 +24,15 @@ def expand_rows( df: pd.DataFrame, func) -> pd.DataFrame:
 
 def clean_data(df: pd.DataFrame)-> pd.DataFrame:
 
-    df['intenviso'] = np.where(df['N Aulas']>=10,1,0)
+    df['intenviso'] = np.where(df['n aulas']>=10,1,0)
 
-    df['Dias da Semana'] = df['Dias da Semana'].str.replace('●',',').str.replace(' ','').str.replace('DOUBLE',',').str.replace('-Triple','').str.split(',')
-    df = df.explode('Dias da Semana').reset_index(drop=True)
+    df['dias da semana'] = df['dias da semana'].str.replace('●',',').str.replace(' ','').str.replace('DOUBLE',',').str.replace('-Triple','').str.split(',')
+    df = df.explode('dias da semana').reset_index(drop=True)
 
-    df['Dias da Semana'] = df['Dias da Semana'].str.replace('ª','ª,').str.split(',')
-    df = df.explode('Dias da Semana').reset_index(drop=True)
+    df['dias da semana'] = df['dias da semana'].str.replace('ª','ª,').str.split(',')
+    df = df.explode('dias da semana').reset_index(drop=True)
 
-    df = df[df['Dias da Semana']!=''].copy()
+    df = df[df['dias da semana']!=''].copy()
 
     substituicoes = {
         '2ª': 'SEGUNDA',
@@ -43,28 +43,28 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
         'Saturday': 'SÁBADO'
     }
 
-    df['Dias da Semana'] = df['Dias da Semana'].replace(substituicoes, regex=True)
+    df['dias da semana'] = df['dias da semana'].replace(substituicoes, regex=True)
 
-    df['STATUS'].fillna('PRESENCIAL', inplace=True)
+    df['status'].fillna('PRESENCIAL', inplace=True)
 
-    df['horario_tratado'] = pd.to_datetime(df['Horário'], format='%H:%M:%S')
+    df['horario_tratado'] = pd.to_datetime(df['horario'], format='%H:%M:%S')
 
     return df
 
 def base_selection(df: pd.DataFrame) -> tuple:
-    aulas_tratadas = df.loc[~df['Grupo'].isnull()]
+    aulas_tratadas = df.loc[~df['nome grupo'].isnull()]
 
     aulas = aulas_tratadas.copy()
     # tratando os dados para colocar cada linha uma aula
-    aulas['Dias da Semana'] = aulas['Dias da Semana'].str.replace('EVERYDAY','2ª ● 3ª ● 4ª ● 5ª ● 6ª')
+    aulas['dias da semana'] = aulas['dias da semana'].str.replace('EVERYDAY','2ª ● 3ª ● 4ª ● 5ª ● 6ª')
 
     # separando as aulas que são triplas, duplas e o resto
-    tri = aulas.loc[aulas['Dias da Semana'] == 'Saturday - Triple']
-    doub = aulas.loc[aulas['Dias da Semana'].str.contains('DOUBLE')]
-    aulas_simples = aulas[~aulas['Dias da Semana'].str.contains('DOUBLE|Saturday - Triple')].copy()
+    tri = aulas.loc[aulas['dias da semana'] == 'Saturday - Triple']
+    doub = aulas.loc[aulas['dias da semana'].str.contains('DOUBLE')]
+    aulas_simples = aulas[~aulas['dias da semana'].str.contains('DOUBLE|Saturday - Triple')].copy()
 
     # tratando a colunas horario
-    aulas_simples['Horário'] = pd.to_datetime(aulas_simples['Horário'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
+    aulas_simples['horario'] = pd.to_datetime(aulas_simples['horario'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
     return aulas_simples, doub, tri
 
 # %%
