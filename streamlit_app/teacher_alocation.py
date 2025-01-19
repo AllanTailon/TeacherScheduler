@@ -67,10 +67,12 @@ class TeacherScheduler:
         self.create_variables()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
-        self.add_consecutive_group_constraints()
         self.add_online_constraints()
         self.add_language_constraints()
         self.add_time_constraints()
+        self.add_time2_constraints()
+        self.add_consecutive_group_constraints()
+        self.add_objective()
         
         prof_alocados = self.solve()
         
@@ -85,7 +87,7 @@ class TeacherScheduler:
     def add_teacher_constraints(self):
         # Restrição: Apenas um professor por grupo
         for g in self.df_class['nome grupo'].unique():
-            self.model.Add(sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique()) == 1)
+            self.model.Add(sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique()) <= 1)
 
     def add_schedule_constraints(self):
         # Restrição: Professores não podem ser alocados em mais de um grupo no mesmo horário
@@ -133,7 +135,7 @@ class TeacherScheduler:
 
         for i in self.df_teach.loc[self.df_teach['Espanhol'] == 0, 'TEACHER'].to_list():
             for g in self.df_class.loc[self.df_class['modalidade'] == 'ESPANHOL', 'nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] ==0)
+                self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_online_constraints(self):
         # Restrição: Professores não podem dar aulas online
@@ -149,23 +151,34 @@ class TeacherScheduler:
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis
 
-        # for g in self.df_class['nome grupo'].unique():
-        #     for i in self.df_teach['TEACHER'].unique():
-        #         time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].values[0] # existe turma que tem dois horarios distintos
-        #         if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].values[0] == 0:
-        #             self.model.Add(self.alocacoes[(i, g)] == 0)
+        for g in self.df_class['nome grupo'].unique():
+            for i in self.df_teach['TEACHER'].unique():
+                time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].to_list()
+                if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].sum(axis=1).values[0] == 0:
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
 
+    def add_time2_constraints(self):
         for i in self.df_teach['TEACHER'].unique():
             for x in self.df_class['dias da semana'].unique():
-                turmas_do_dia = self.df_class[self.df_class['dias da semana']==x]['nome grupo'].unique() # esse codigo nao está funcionando
+                turmas_do_dia = self.df_class[self.df_class['dias da semana']==x]['nome grupo'].unique()
                 if self.df_teach[self.df_teach['TEACHER']==i][x].values[0] == 0:
                     for g in turmas_do_dia:
                         self.model.Add(self.alocacoes[(i, g)] == 0)
 
+    def add_objective(self):
+        total_allocation = sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique() for g in self.df_class['nome grupo'].unique())
+        self.model.Maximize(total_allocation)
+
     def solve(self):
         # Resolver o modelo e alocar os Professores
         solver = cp_model.CpSolver()
-        status = solver.Solve(self.model)
+        solver.parameters.max_time_in_seconds = 3600  # Tempo máximo de execução
+        solver.parameters.num_search_workers = 8  # Aumentar o número de workers
+        solver.parameters.log_search_progress = True  # Exibir progresso na busca
+
+        # Tentar buscar todas as combinações possíveis
+        solver.parameters.search_branching = cp_model.FIXED_SEARCH
+        status = solver.Solve(self.model)   
 
         prof_alocados = pd.DataFrame(columns=['Professor', 'nome grupo'])
 
@@ -175,5 +188,8 @@ class TeacherScheduler:
                     if solver.Value(self.alocacoes[(i, g)]):
                         aloca = pd.DataFrame({'Professor': [i], 'nome grupo': [g]})
                         prof_alocados = pd.concat([prof_alocados, aloca], ignore_index=True)
+        else:
+            print("Não foi possível encontrar uma solução ótima.")
 
         return prof_alocados
+    
