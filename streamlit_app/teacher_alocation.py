@@ -35,10 +35,10 @@ class TeacherScheduler:
         Adiciona a restrição para evitar que um professor seja alocado a grupos consecutivos com unidades diferentes.
     
     add_online_constraints():
-        Adiciona a restrição de que professores sem computador não podem dar aulas online.
+        Adiciona a restrição de quais professores podem dar aulas online.
     
-    add_language_constraints():
-        Adiciona a restrição de que professores que não falam espanhol não podem dar aulas de espanhol.
+    add_modalidades_constraints():
+        Adiciona a restrição de quais modalidades o professor pode dar aulas.
     
     solve():
         Resolve o modelo de otimização e retorna um DataFrame com as alocações de professores para os grupos.
@@ -68,9 +68,10 @@ class TeacherScheduler:
         self.add_teacher_constraints()
         self.add_schedule_constraints()
         self.add_online_constraints()
-        self.add_language_constraints()
+        self.add_modalidades_constraints()
+        self.add_grupo_constraints()
+        self.add_estagio_constraints()
         self.add_time_constraints()
-        self.add_time2_constraints()
         self.add_consecutive_group_constraints()
         self.add_objective()
         
@@ -80,12 +81,14 @@ class TeacherScheduler:
 
     def create_variables(self):
         # Criação das variáveis de alocação
+        
         for i in self.df_teach['TEACHER'].unique():
             for g in self.df_class['nome grupo'].unique():
                 self.alocacoes[(i, g)] = self.model.NewBoolVar(f"{i}_converinglesson_{g}")
 
     def add_teacher_constraints(self):
         # Restrição: Apenas um professor por grupo
+
         for g in self.df_class['nome grupo'].unique():
             self.model.Add(sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique()) <= 1)
 
@@ -104,6 +107,7 @@ class TeacherScheduler:
 
     def add_consecutive_group_constraints(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
+
         for x in self.df_class['dias da semana'].unique():
             for j in self.df_class['nome grupo'].unique():
                 if self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'horario'].empty:
@@ -120,7 +124,7 @@ class TeacherScheduler:
                         (self.df_class['horario'] == (horario_da_turma + pd.Timedelta(hours=1)).strftime('%H:%M:%S')) & 
                         (self.df_class['unidade'] != unidade_da_turma) & 
                         (self.df_class['status'] == 'PRESENCIAL'), 
-                        'nome grupo'
+                        'nome grupo' #corrigir esse. Nem toda aulas seguida é 1h depois. pode ser 10,30 50 minutos etc...
                     ].unique()
 
                     grupos_seguidos = list(grupos_seguidos)
@@ -130,12 +134,34 @@ class TeacherScheduler:
                         for i in self.df_teach['TEACHER'].unique():
                             self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_seguidos) <= 1)
 
-    def add_language_constraints(self):
-        # Restrição: Professores que não falam espanhol não podem dar aulas de espanhol
+    def add_modalidades_constraints(self):
+        # Restrição: Professores que não podem dar aulas em determinadas modalidades
 
-        for i in self.df_teach.loc[self.df_teach['Espanhol'] == 0, 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['modalidade'] == 'ESPANHOL', 'nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
+        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intemed',
+                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intemed',
+                          'CONV - Esp Avançado','MBA']
+        for mod in modality_list:
+            for i in self.df_teach.loc[self.df_teach[mod] == 0, 'TEACHER'].to_list():
+                for g in self.df_class.loc[self.df_class['modalidade'] == mod, 'nome grupo'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
+
+    def add_grupo_constraints(self):
+        # Restrição: Professores que não podem dar aulas em determinados grupos
+
+        grupo_list = ['Grupo', 'VIP', 'In Company', 'VIP - In Company']
+        for grp in grupo_list:
+            for i in self.df_teach.loc[self.df_teach[grp] == 0, 'TEACHER'].to_list():
+                for g in self.df_class.loc[self.df_class['grupo'] == grp, 'nome grupo'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
+
+    def add_estagio_constraints(self):
+        # Restrição: Professores que não podem dar aulas em estágios
+
+        estagio_list = self.df_class.loc[self.df_class['stage'].str.contains('ESTAGIO|MBA', na=False)]['stage'].unique()
+        for est in estagio_list:
+            for i in self.df_teach.loc[self.df_teach[est] == 0, 'TEACHER'].to_list():
+                for g in self.df_class.loc[self.df_class['stage'] == est, 'nome grupo'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_online_constraints(self):
         # Restrição: Professores não podem dar aulas online
@@ -157,7 +183,6 @@ class TeacherScheduler:
                 if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].sum(axis=1).values[0] == 0:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
-    def add_time2_constraints(self):
         for i in self.df_teach['TEACHER'].unique():
             for x in self.df_class['dias da semana'].unique():
                 turmas_do_dia = self.df_class[self.df_class['dias da semana']==x]['nome grupo'].unique()
@@ -172,9 +197,6 @@ class TeacherScheduler:
     def solve(self):
         # Resolver o modelo e alocar os Professores
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 3600  # Tempo máximo de execução
-        solver.parameters.num_search_workers = 8  # Aumentar o número de workers
-        solver.parameters.log_search_progress = True  # Exibir progresso na busca
 
         # Tentar buscar todas as combinações possíveis
         solver.parameters.search_branching = cp_model.FIXED_SEARCH
