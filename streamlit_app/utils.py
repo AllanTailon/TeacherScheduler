@@ -58,6 +58,9 @@ def base_selection(df: pd.DataFrame) -> tuple:
     # tratando os dados para colocar cada linha uma aula
     aulas['dias da semana'] = aulas['dias da semana'].str.replace('EVERYDAY','2ª ● 3ª ● 4ª ● 5ª ● 6ª')
     aulas['stage'] = aulas['stage'].apply(lambda x: f'ESTAGIO_{x}' if isinstance(x, int) else x)
+    aulas['ultimo_professor'] = aulas['ultimo_professor'].astype(str)
+    aulas['penultimo_professor'] = aulas['penultimo_professor'].astype(str)
+
 
     # separando as aulas que são triplas, duplas e o resto
     tri = aulas.loc[aulas['dias da semana'] == 'Saturday - Triple']

@@ -108,31 +108,64 @@ class TeacherScheduler:
     def add_consecutive_group_constraints(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
 
-        for x in self.df_class['dias da semana'].unique():
+        for x in self.df_class.loc[self.df_class['status']=='PRESENCIAL']['dias da semana'].unique():
             for j in self.df_class['nome grupo'].unique():
                 if self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'horario'].empty:
                     continue
-                status = self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'status'].values[0]
-                if status == 'PRESENCIAL':
-                    horario_da_turma, unidade_da_turma = self.df_class.loc[
-                        (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x),
-                        ['horario_tratado', 'unidade']
-                    ].values[0]
-                    
-                    grupos_seguidos = self.df_class.loc[
-                        (self.df_class['dias da semana'] == x) & 
-                        (self.df_class['horario'] == (horario_da_turma + pd.Timedelta(hours=1)).strftime('%H:%M:%S')) & 
-                        (self.df_class['unidade'] != unidade_da_turma) & 
-                        (self.df_class['status'] == 'PRESENCIAL'), 
-                        'nome grupo' #corrigir esse. Nem toda aulas seguida é 1h depois. pode ser 10,30 50 minutos etc...
-                    ].unique()
+                horario_da_turma, unidade_da_turma = self.df_class.loc[
+                    (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x),
+                    ['horario_tratado', 'unidade']
+                ].values[0]
 
-                    grupos_seguidos = list(grupos_seguidos)
-                    grupos_seguidos.append(j)
+                proximos_horarios = [
+                    (horario_da_turma + pd.Timedelta(minutes=60)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S')
+                    ]
+                
+                list_minutes = [10,20,30,40,50]
+                horarios_impossiveis = []
+                for minutes in list_minutes:
+                    horarios_impossiveis.append((horario_da_turma + pd.Timedelta(minutes=minutes)).strftime('%H:%M:%S'))
 
-                    if len(grupos_seguidos) > 1:
-                        for i in self.df_teach['TEACHER'].unique():
-                            self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_seguidos) <= 1)
+                grupos_seguidos = self.df_class.loc[
+                    (self.df_class['dias da semana'] == x) & 
+                    (self.df_class['horario'].isin(proximos_horarios)) & 
+                    (self.df_class['unidade'] != unidade_da_turma) & 
+                    (self.df_class['status'] == 'PRESENCIAL'), 
+                    'nome grupo'
+                ].unique()
+
+                grupos_seguidos = list(grupos_seguidos)
+                grupos_seguidos.append(j)
+
+                grupos_impossivel = self.df_class.loc[
+                    (self.df_class['dias da semana'] == x) &
+                    (self.df_class['horario'].isin(horarios_impossiveis)),
+                    'nome grupo'
+                ].unique()
+
+                grupos_impossivel = list(grupos_impossivel)
+                grupos_impossivel.append(j)
+
+                if len(grupos_impossivel) > 1:
+                    for i in self.df_teach['TEACHER'].unique():
+                        self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_impossivel) <= 1)
+
+                if len(grupos_seguidos) > 1:
+                    for i in self.df_teach['TEACHER'].unique():
+                        self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_seguidos) <= 1)
+
+    def add_consectives_teacher_constrains(self):
+        # Restrição: Não alocar o mesmo professor em grupos consecutivos
+
+        for g in self.df_class['nome grupo'].unique():
+            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['ultimo_professor'].values[0]
+            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['penultimo_professor'].values[0]
+            if last_teacher != 'nan':
+                self.model.Add(self.alocacoes[(last_teacher, g)] == 0)
+            if before_last_teacher != 'nan':
+                self.model.Add(self.alocacoes[(before_last_teacher, g)] == 0)
+
 
     def add_modalidades_constraints(self):
         # Restrição: Professores que não podem dar aulas em determinadas modalidades
@@ -189,6 +222,13 @@ class TeacherScheduler:
                 if self.df_teach[self.df_teach['TEACHER']==i][x].values[0] == 0:
                     for g in turmas_do_dia:
                         self.model.Add(self.alocacoes[(i, g)] == 0)
+
+    def add_intensive_constraints(self):
+        # Restrição: Professores que não podem dar aulas em intensivos
+
+        for i in self.df_teach.loc[self.df_teach['INTENSIVÃO'] == 0, 'TEACHER'].to_list():
+            for g in self.df_class.loc[self.df_class['n aulas'] >= 10, 'nome grupo'].unique():
+                self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_objective(self):
         total_allocation = sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique() for g in self.df_class['nome grupo'].unique())
