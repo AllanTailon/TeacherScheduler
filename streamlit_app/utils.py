@@ -6,17 +6,17 @@ import random
 import itertools
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
-    hora_inicial = pd.to_datetime(row['Horário'], format='%H:%M:%S')
+    hora_inicial = pd.to_datetime(row['horario'], format='%H:%M:%S')
     novas_linhas = []
     for i in range(times):
         nova_linha = row.copy()
-        nova_linha['Horário'] = (hora_inicial + pd.Timedelta(hours=i)).strftime('%H:%M:%S')
+        nova_linha['horario'] = (hora_inicial + pd.Timedelta(hours=i)).strftime('%H:%M:%S')
         novas_linhas.append(nova_linha)
     return pd.DataFrame(novas_linhas)
 
 def desaninhar_dias(df):
-    df['Dias da Semana'] = df['Dias da Semana'].str.split(',')
-    df = df.explode('Dias da Semana')
+    df['dias da semana'] = df['dias da semana'].str.split(',')
+    df = df.explode('dias da semana')
     return df
 
 def expand_rows( df: pd.DataFrame, func) -> pd.DataFrame:
@@ -24,102 +24,51 @@ def expand_rows( df: pd.DataFrame, func) -> pd.DataFrame:
 
 def clean_data(df: pd.DataFrame)-> pd.DataFrame:
 
-    df['Dias da Semana'] = df['Dias da Semana'].str.replace('●',',').str.replace(' ','').str.split(',')
-    df = df.explode('Dias da Semana').reset_index(drop=True)
+    df['intenviso'] = np.where(df['n aulas']>=10,1,0)
 
-    df['Dias da Semana'] = df['Dias da Semana'].str.replace('ª','ª,').str.split(',')
-    df = df.explode('Dias da Semana').reset_index(drop=True)
+    df['dias da semana'] = df['dias da semana'].str.replace('●',',').str.replace(' ','').str.replace('DOUBLE',',').str.replace('-Triple','').str.split(',')
+    df = df.explode('dias da semana').reset_index(drop=True)
 
-    df = df[df['Dias da Semana']!=''].copy()
+    df['dias da semana'] = df['dias da semana'].str.replace('ª','ª,').str.split(',')
+    df = df.explode('dias da semana').reset_index(drop=True)
 
-    df['STATUS'].fillna('PRESENCIAL', inplace=True)
+    df = df[df['dias da semana']!=''].copy()
 
-    df['horario_tratado'] = pd.to_datetime(df['Horário'], format='%H:%M:%S')
+    substituicoes = {
+        '2ª': 'SEGUNDA',
+        '3ª': 'TERÇA',
+        '4ª': 'QUARTA',
+        '5ª': 'QUINTA',
+        '6ª': 'SEXTA',
+        'Saturday': 'SÁBADO'
+    }
+
+    df['dias da semana'] = df['dias da semana'].replace(substituicoes, regex=True)
+
+    df['status'].fillna('PRESENCIAL', inplace=True)
+
+    df['horario_tratado'] = pd.to_datetime(df['horario'], format='%H:%M:%S')
 
     return df
 
 def base_selection(df: pd.DataFrame) -> tuple:
-    aulas_tratadas = df.loc[~df['Grupo'].isnull()][['Grupo','Horário','Dias da Semana','Unidade','STATUS','MOD']]
-    aulas_tratadas = aulas_tratadas.loc[aulas_tratadas['Dias da Semana']!='FOLDER'].reset_index(drop=True)
+    aulas_tratadas = df.loc[~df['nome grupo'].isnull()]
 
     aulas = aulas_tratadas.copy()
     # tratando os dados para colocar cada linha uma aula
-    aulas['Dias da Semana'] = aulas['Dias da Semana'].str.replace('EVERYDAY','2ª ● 3ª ● 4ª ● 5ª ● 6ª')
+    aulas['dias da semana'] = aulas['dias da semana'].str.replace('EVERYDAY','2ª ● 3ª ● 4ª ● 5ª ● 6ª')
+    aulas['stage'] = aulas['stage'].apply(lambda x: f'ESTAGIO_{x}' if isinstance(x, int) else x)
+    aulas['ultimo_professor'] = aulas['ultimo_professor'].astype(str)
+    aulas['penultimo_professor'] = aulas['penultimo_professor'].astype(str)
+
 
     # separando as aulas que são triplas, duplas e o resto
-    tri = aulas.loc[aulas['Dias da Semana'] == 'Saturday - Triple']
-    doub = aulas.loc[aulas['Dias da Semana'].str.contains('DOUBLE')]
-    aulas_simples = aulas[~aulas['Dias da Semana'].str.contains('DOUBLE|Saturday - Triple')].copy()
+    tri = aulas.loc[aulas['dias da semana'] == 'Saturday - Triple']
+    doub = aulas.loc[aulas['dias da semana'].str.contains('DOUBLE')]
+    aulas_simples = aulas[~aulas['dias da semana'].str.contains('DOUBLE|Saturday - Triple')].copy()
 
     # tratando a colunas horario
-    aulas_simples['Horário'] = pd.to_datetime(aulas_simples['Horário'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
+    aulas_simples['horario'] = pd.to_datetime(aulas_simples['horario'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
     return aulas_simples, doub, tri
 
-def gerar_lista_modulos():
-    num_opcoes = random.randint(10, 13)
-    
-    lista_modulos = [f"Modulo {i}" for i in random.sample(range(1, 14), num_opcoes)]
-    
-    return lista_modulos
-
-def explode_multiple_columns(df, columns):
-    for col in columns:
-        df = df.explode(col, ignore_index=True)
-    return df
-
-def treat_mock_df(df, columns):
-    df_exploded = explode_multiple_columns(df, columns)
-    dum_prof = pd.get_dummies(df_exploded, columns=columns)
-    prof_treat = dum_prof.groupby('Professor').max().reset_index()
-    return prof_treat
-
-def gerar_combinacoes(opcoes):
-    todas_combinacoes = []
-    for r in range(1, len(opcoes) + 1):  # Combinações de 1 até o tamanho da lista
-        combinacoes = itertools.combinations(opcoes, r)
-        todas_combinacoes.extend(combinacoes)
-    return [list(c) for c in todas_combinacoes]
-
-def rand_choice(combinations,sizes,prob):
-    escolhas = np.random.choice(len(combinations), size=sizes, p=prob)
-    choices = [combinations[i] for i in escolhas]
-    return choices
-
-def mock_teach_df(num_professors: int = 50) -> pd.DataFrame:
-    
-    nomes_distintos = set()  # Usar um conjunto para garantir a distinção
-    opcoes_automovel = ["Sim", "Não"]
-    opcoes_idioma = ["Ingles", "Espanhol"]
-    opcoes_pc = ["Notebook", "Computador"]
-    opcoes_unidade = ["Satélite", "Vicentina", "Jardim", "Online"]
-    opcoes_disp = ["Manha","Tarde","Noite","Sabado"]
-
-    resultado_comp = gerar_combinacoes(opcoes_pc)
-    resultado_unidade = gerar_combinacoes(opcoes_unidade)
-    resultado_idioma = gerar_combinacoes(opcoes_idioma)
-    resultado_disponibilidade = gerar_combinacoes(opcoes_disp)
-
-    # Gerar as opções para cada característica
-    automoveis = list(np.random.choice(opcoes_automovel, size=num_professors, p=[0.7, 0.3]))
-    idiomas = rand_choice(resultado_idioma,num_professors,[0.7, 0.1, 0.2])
-    computador = rand_choice(resultado_comp,num_professors,[0.4, 0.2, 0.4])
-    unidades = rand_choice(resultado_unidade,num_professors,[0]+[0.05] * 12 + [0.2, 0.2])
-    disp = rand_choice(resultado_disponibilidade,num_professors,[0]+[0.05] * 12 + [0.2, 0.2])
-    modulos = [gerar_lista_modulos() for _ in range(num_professors)]
-    
-    while len(nomes_distintos) < num_professors:
-        primeiro_nome = names.get_first_name()
-        nomes_distintos.add(primeiro_nome)
-        
-    nomes_distintos = list(nomes_distintos)
-
-    info_professors = pd.DataFrame({'Professor': nomes_distintos,
-                                    'Unidades':unidades,
-                                    'Automovel': automoveis,
-                                    'Maquinas': computador,
-                                    'disponibilidade':disp,
-                                    'Modulo':modulos,
-                                    'Idiomas':idiomas}
-                                    )
-    return info_professors
 # %%
