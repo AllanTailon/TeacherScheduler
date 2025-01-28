@@ -11,7 +11,7 @@ import base64
 import os
 from datetime import datetime
 import io
-from utils import *
+from utils import transform_classes_dateframe,transform_teacher_dataframe, transform_alocation_dataframe
 from teacher_alocation import TeacherScheduler
 
 st.set_page_config(
@@ -112,14 +112,8 @@ elif authentication_status:
         st.subheader("Upload do arquivo da Rota")
         rota_uploaded_file = st.file_uploader("Faça o upload do arquivo da Rota", type=["xlsx"], key="rota_uploader")
 
-        if 'aulas_rotas' not in st.session_state:
-            st.session_state['aulas_rotas'] = None
-
-        if st.session_state['aulas_rotas'] is not None:
-            st.dataframe(st.session_state['aulas_rotas'])
-
         if rota_uploaded_file:
-            aulas_raw = pd.read_excel(rota_uploaded_file, header=1)
+            aulas_raw = pd.read_excel(rota_uploaded_file)
             st.dataframe(aulas_raw)
 
             st.subheader("Upload do arquivo dos Professores")
@@ -130,38 +124,32 @@ elif authentication_status:
                 st.dataframe(professores_raw)
 
                 if st.button("Gerar Rotas"):
-                    if 'info_professors' not in st.session_state:
-                        st.error("Por favor, insira os dados dos professores primeiro.")
-                    else:
-                        aulas_simples, doub, tri = base_selection(aulas_raw)
+                    
+                    with st.spinner(text="Gerando Rotas..."):
 
-                        aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
-                        aulas_triplicadas = expand_rows(tri, lambda row: replicate_row(row, times=3))
+                        classes_result = transform_classes_dateframe(aulas_raw)
+                        professores_result = transform_teacher_dataframe(professores_raw)
 
-                        df_tratado = pd.concat([aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True)
-                        df_final = clean_data(df_tratado)
-
-                        df_dummie = treat_mock_df(st.session_state['info_professors'], ['Unidades', 'Maquinas', 'disponibilidade', 'Modulo', 'Idiomas', 'Automovel'])
-                        Ts = TeacherScheduler(df_final, df_dummie)
-
+                        Ts = TeacherScheduler(classes_result, professores_result)
                         base_alocada = Ts.schedule_teachers()
-                        base_show = pd.merge(aulas_raw, base_alocada, on='Grupo', how='left')
 
-                        st.write("Rotas Geradas!")
-                        st.dataframe(base_show[['Professor', 'Grupo', 'Horário', 'Dias da Semana', 'MOD', 'STATUS']])
-                        st.session_state['aulas_rotas'] = base_show[['Professor', 'Grupo', 'Horário', 'Dias da Semana', 'MOD', 'STATUS']].copy()
+                        df_results,aulas_nao_alocadas = transform_alocation_dataframe(aulas_raw,base_alocada)
 
-                        output = io.BytesIO()
-                        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                            df_final.to_excel(writer, index=False, sheet_name="Rotas")
-                        processed_file = output.getvalue()
+                    st.success("Feito!")
+                    st.dataframe(df_results)
+                    
 
-                        st.download_button(
-                            label="Download das Rotas",
-                            data=processed_file,
-                            file_name="rotas_geradas.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                        df_results.to_excel(writer, index=False, sheet_name="Rotas")
+                    processed_file = output.getvalue()
+
+                    st.download_button(
+                        label="Download das Rotas",
+                        data=processed_file,
+                        file_name="rotas_geradas.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
         else:
             st.warning("Por favor, faça o upload do arquivo da Rota primeiro.")
 
@@ -173,7 +161,7 @@ elif authentication_status:
         contact_form = """
         <form action="https://formsubmit.co/teacher.scheduler.contact@gmail.com" method="POST">
             <input type="hidden" name="_captcha" value="false">
-            <input type="text" name="name" placeholder="Digite seu nome" required>
+            <input type="text" name="name" placeholder="Digite seus nome" required>
             <input type="email" name="email" placeholder="Digite seu e-mail" required>
             <textarea name="message" placeholder="Digite sua mensagem"></textarea>
             <button type="submit">Enviar</button>
