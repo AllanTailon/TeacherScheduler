@@ -71,4 +71,30 @@ def base_selection(df: pd.DataFrame) -> tuple:
     aulas_simples['horario'] = pd.to_datetime(aulas_simples['horario'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
     return aulas_simples, doub, tri
 
-# %%
+def transform_classes_dateframe(aulas_raw):
+    aulas_simples,doub,tri=base_selection(aulas_raw)
+
+    # transformando aulas duplas/triplas em 2/3 linhas
+    aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
+    aulas_triplicadas = expand_rows(tri, lambda row: replicate_row(row, times=3))
+
+    # juntando todas as linhas
+    df_tratado = pd.concat([aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True)
+
+    df_result = clean_data(df_tratado)
+
+    return df_result
+
+def transform_teacher_dataframe(professores_raw):
+    professores_raw.columns = professores_raw.columns.astype(str)
+    return professores_raw
+
+def transform_alocation_dataframe(aulas_raw,base_alocada):
+    alocation_df = pd.merge(aulas_raw, base_alocada, on='nome grupo', how='left')
+    alocation_df['penultimo_professor'] = alocation_df['ultimo_professor']
+    alocation_df['ultimo_professor'] = alocation_df['professores_alocados']
+    alocation_df['teacher'] = alocation_df['professores_alocados']
+    alocation_df.drop(columns=['professores_alocados'], inplace=True)
+
+    not_alocation_df = aulas_raw.loc[aulas_raw['nome grupo'].isin(alocation_df['nome grupo'])].copy()
+    return alocation_df, not_alocation_df

@@ -72,6 +72,9 @@ class TeacherScheduler:
         self.add_grupo_constraints()
         self.add_estagio_constraints()
         self.add_time_constraints()
+        self.add_intensive_constraints()
+        self.add_consectives_teacher_constrains()
+        self.add_restriction_teacher_constrains()
         self.add_consecutive_group_constraints()
         self.add_objective()
         
@@ -161,11 +164,18 @@ class TeacherScheduler:
         for g in self.df_class['nome grupo'].unique():
             last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['ultimo_professor'].values[0]
             before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['penultimo_professor'].values[0]
-            if last_teacher != 'nan':
+            if last_teacher not in ['nan', '-', None] and pd.notna(last_teacher):
                 self.model.Add(self.alocacoes[(last_teacher, g)] == 0)
-            if before_last_teacher != 'nan':
+            if before_last_teacher not in ['nan', '-', None] and pd.notna(before_last_teacher):
                 self.model.Add(self.alocacoes[(before_last_teacher, g)] == 0)
 
+    def add_restriction_teacher_constrains(self):
+        # Restrição: Professores que não podem dar aulas em determinados grupos
+
+        for g in self.df_class['nome grupo'].unique():
+            prof_restrict = self.df_class.loc[self.df_class['nome grupo'] == g]['restricoes_professor'].values[0]
+            if prof_restrict not in ['nan', '-', None] and pd.notna(prof_restrict):
+                self.model.Add(self.alocacoes[(prof_restrict, g)] == 0)
 
     def add_modalidades_constraints(self):
         # Restrição: Professores que não podem dar aulas em determinadas modalidades
@@ -242,13 +252,13 @@ class TeacherScheduler:
         solver.parameters.search_branching = cp_model.FIXED_SEARCH
         status = solver.Solve(self.model)   
 
-        prof_alocados = pd.DataFrame(columns=['Professor', 'nome grupo'])
+        prof_alocados = pd.DataFrame(columns=['professores_alocados', 'nome grupo'])
 
         if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
             for g in self.df_class['nome grupo'].unique():
                 for i in self.df_teach['TEACHER'].unique():
                     if solver.Value(self.alocacoes[(i, g)]):
-                        aloca = pd.DataFrame({'Professor': [i], 'nome grupo': [g]})
+                        aloca = pd.DataFrame({'professores_alocados': [i], 'nome grupo': [g]})
                         prof_alocados = pd.concat([prof_alocados, aloca], ignore_index=True)
         else:
             print("Não foi possível encontrar uma solução ótima.")
