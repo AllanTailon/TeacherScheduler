@@ -51,6 +51,9 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
 
     return df
 
+def filter_class_without_teacher(df: pd.DataFrame) -> pd.DataFrame:
+    return df[((df['teacher'].isnull()) | (df['teacher']=='-'))]
+
 def base_selection(df: pd.DataFrame) -> tuple:
     aulas_tratadas = df.loc[~df['nome grupo'].isnull()]
 
@@ -72,7 +75,8 @@ def base_selection(df: pd.DataFrame) -> tuple:
     return aulas_simples, doub, tri
 
 def transform_classes_dateframe(aulas_raw):
-    aulas_simples,doub,tri=base_selection(aulas_raw)
+    aulas_filtrada = filter_class_without_teacher(aulas_raw)
+    aulas_simples,doub,tri=base_selection(aulas_filtrada)
 
     # transformando aulas duplas/triplas em 2/3 linhas
     aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
@@ -92,9 +96,8 @@ def transform_teacher_dataframe(professores_raw):
 def transform_alocation_dataframe(aulas_raw,base_alocada):
     alocation_df = pd.merge(aulas_raw, base_alocada, on='nome grupo', how='left')
     alocation_df['penultimo_professor'] = alocation_df['ultimo_professor']
-    alocation_df['ultimo_professor'] = alocation_df['professores_alocados']
-    alocation_df['teacher'] = alocation_df['professores_alocados']
+    alocation_df.loc[alocation_df['professores_alocados'].notnull(), 'teacher'] = alocation_df.loc[alocation_df['professores_alocados'].notnull(), 'professores_alocados']
+    alocation_df['ultimo_professor'] = alocation_df['teacher']
     alocation_df.drop(columns=['professores_alocados'], inplace=True)
-
-    not_alocation_df = aulas_raw.loc[aulas_raw['nome grupo'].isin(alocation_df['nome grupo'])].copy()
+    not_alocation_df = alocation_df.loc[((alocation_df['teacher'].isnull())|(alocation_df['teacher']=='-'))].copy()
     return alocation_df, not_alocation_df
