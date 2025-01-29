@@ -137,8 +137,10 @@ elif authentication_status:
 
                     st.success("Feito!")
                     st.dataframe(df_results)
-                    
 
+                    st.subheader("Aulas não alocadas")
+                    st.dataframe(aulas_nao_alocadas)
+                    
                     output = io.BytesIO()
                     with pd.ExcelWriter(output, engine="openpyxl") as writer:
                         df_results.to_excel(writer, index=False, sheet_name="Rotas")
