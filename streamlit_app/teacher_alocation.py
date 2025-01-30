@@ -1,5 +1,6 @@
 from ortools.sat.python import cp_model
 import pandas as pd
+import random
 
 class TeacherScheduler:
     """
@@ -62,23 +63,24 @@ class TeacherScheduler:
         self.alocacoes = {}
         self.model = cp_model.CpModel()
 
-    def schedule_teachers(self):
+    def schedule_teachers(self,seed=None):
 
         self.create_variables()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
-        self.add_online_constraints()
-        self.add_modalidades_constraints()
-        self.add_grupo_constraints()
-        self.add_estagio_constraints()
-        self.add_time_constraints()
-        self.add_intensive_constraints()
+        self.add_consecutive_group_constraints()
         self.add_consectives_teacher_constrains()
         self.add_restriction_teacher_constrains()
-        self.add_consecutive_group_constraints()
+        self.add_modalidades_constraints()
+        self.add_grupo_constraints()
+        self.add_class_per_teacher_constraints()
+        self.add_estagio_constraints()
+        self.add_online_constraints()
+        self.add_time_constraints()
+        self.add_intensive_constraints()
         self.add_objective()
         
-        prof_alocados = self.solve()
+        prof_alocados = self.solve(seed = seed)
         
         return prof_alocados
 
@@ -197,6 +199,19 @@ class TeacherScheduler:
                 for g in self.df_class.loc[self.df_class['grupo'] == grp, 'nome grupo'].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
+    def add_class_per_teacher_constraints(self):
+        # Restrição: Quantidade media de aulas por professor
+        min_classes_per_teacher = self.df_class['nome grupo'].nunique() // self.df_teach['TEACHER'].nunique()
+        if self.df_class['nome grupo'].nunique() % self.df_teach['TEACHER'].nunique() == 0:
+            max_classes_per_teacher = min_classes_per_teacher
+        else:
+            max_classes_per_teacher = min_classes_per_teacher + 1
+
+        for i in self.df_teach['TEACHER'].unique():
+            self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) <= max_classes_per_teacher)
+            self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) >= 1)
+
+
     def add_estagio_constraints(self):
         # Restrição: Professores que não podem dar aulas em estágios
 
@@ -244,13 +259,22 @@ class TeacherScheduler:
         total_allocation = sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique() for g in self.df_class['nome grupo'].unique())
         self.model.Maximize(total_allocation)
 
-    def solve(self):
+    def solve(self,seed):
         # Resolver o modelo e alocar os Professores
         solver = cp_model.CpSolver()
 
         # Tentar buscar todas as combinações possíveis
-        solver.parameters.search_branching = cp_model.FIXED_SEARCH
+        if seed == None :
+            solver.parameters.random_seed = random.randint(1, 100000)
+        else:
+            solver.parameters.random_seed = seed
+        print(solver.parameters.random_seed)
+        # Permitir busca aleatória
+        solver.parameters.search_branching = cp_model.AUTOMATIC_SEARCH  # Pode testar cp_model.RANDOM_SEARCH também
+        
+        solver.parameters.enumerate_all_solutions = True
         status = solver.Solve(self.model)   
+        
 
         prof_alocados = pd.DataFrame(columns=['professores_alocados', 'nome grupo'])
 
