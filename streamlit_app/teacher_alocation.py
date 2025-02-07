@@ -243,7 +243,7 @@ class TeacherScheduler:
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis
 
-        for g in self.df_class['nome grupo'].unique():
+        for g in self.df_class[self.df_class['dias da semana']!='SÁBADO']['nome grupo'].unique():
             for i in self.df_teach['TEACHER'].unique():
                 time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].to_list()
                 if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].sum(axis=1).values[0] == 0:
