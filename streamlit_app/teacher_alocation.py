@@ -66,7 +66,7 @@ class TeacherScheduler:
     def schedule_teachers(self,seed=None):
 
         self.create_variables()
-        #self.add_teacher_pre_alocation()
+        self.add_teacher_pre_alocation()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
         self.add_consecutive_group_constraints()
