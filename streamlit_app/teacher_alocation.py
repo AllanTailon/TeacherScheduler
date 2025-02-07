@@ -66,6 +66,7 @@ class TeacherScheduler:
     def schedule_teachers(self,seed=None):
 
         self.create_variables()
+        self.add_teacher_pre_alocation()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
         self.add_consecutive_group_constraints()
@@ -90,6 +91,13 @@ class TeacherScheduler:
         for i in self.df_teach['TEACHER'].unique():
             for g in self.df_class['nome grupo'].unique():
                 self.alocacoes[(i, g)] = self.model.NewBoolVar(f"{i}_converinglesson_{g}")
+
+    def add_teacher_pre_alocation(self):
+        # Restrição: Professores que já estão alocados
+
+        for i in self.df_teach['TEACHER'].unique():
+            for g in self.df_class.loc[self.df_class['teacher'] == i, 'nome grupo'].unique():
+                self.model.Add(self.alocacoes[(i, g)] == 1)
 
     def add_teacher_constraints(self):
         # Restrição: Apenas um professor por grupo
@@ -203,13 +211,13 @@ class TeacherScheduler:
         # Restrição: Quantidade media de aulas por professor
         min_classes_per_teacher = self.df_class['nome grupo'].nunique() // self.df_teach['TEACHER'].nunique()
         if self.df_class['nome grupo'].nunique() % self.df_teach['TEACHER'].nunique() == 0:
-            max_classes_per_teacher = min_classes_per_teacher
+            max_classes_per_teacher = min_classes_per_teacher + 15
         else:
-            max_classes_per_teacher = min_classes_per_teacher + 1
+            max_classes_per_teacher = min_classes_per_teacher + 20
 
         for i in self.df_teach['TEACHER'].unique():
             self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) <= max_classes_per_teacher)
-            self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) >= 1)
+            #self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) >= 0)
 
 
     def add_estagio_constraints(self):
@@ -235,18 +243,35 @@ class TeacherScheduler:
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis
 
-        for g in self.df_class['nome grupo'].unique():
+        for g in self.df_class[self.df_class['dias da semana']!='SÁBADO']['nome grupo'].unique():
             for i in self.df_teach['TEACHER'].unique():
                 time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].to_list()
                 if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].sum(axis=1).values[0] == 0:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
-        for i in self.df_teach['TEACHER'].unique():
-            for x in self.df_class['dias da semana'].unique():
-                turmas_do_dia = self.df_class[self.df_class['dias da semana']==x]['nome grupo'].unique()
-                if self.df_teach[self.df_teach['TEACHER']==i][x].values[0] == 0:
-                    for g in turmas_do_dia:
-                        self.model.Add(self.alocacoes[(i, g)] == 0)
+            for i in self.df_teach['TEACHER'].unique():
+                for x in self.df_class['dias da semana'].unique():
+                    turmas_do_dia = self.df_class[self.df_class['dias da semana'] == x]['nome grupo'].unique()
+                    disponibilidade = self.df_teach[self.df_teach['TEACHER'] == i][x].values[0]
+
+                    if disponibilidade == 0:
+                        # Se o professor não pode dar aula no dia, todas as alocações devem ser 0
+                        for g in turmas_do_dia:
+                            self.model.Add(self.alocacoes[(i, g)] == 0)
+
+                    elif disponibilidade == 0.5:
+                        # Criamos uma variável binária que controla a ativação desse professor
+                        usa_flexibilidade = self.model.NewBoolVar(f"flex_{i}_{x}")
+
+                        for g in turmas_do_dia:
+                            # Primeiro, tenta alocar considerando 0.5 como 0 (sem alocação)
+                            self.model.Add(self.alocacoes[(i, g)] == 0).OnlyEnforceIf(usa_flexibilidade.Not())
+
+                            # Se a função objetivo precisar desse professor, ele pode ser alocado
+                            self.model.Add(self.alocacoes[(i, g)] == 1).OnlyEnforceIf(usa_flexibilidade)
+
+                        # Penaliza o uso da flexibilidade para que só seja ativado se for realmente necessário
+                        self.model.Minimize(usa_flexibilidade)
 
     def add_intensive_constraints(self):
         # Restrição: Professores que não podem dar aulas em intensivos
