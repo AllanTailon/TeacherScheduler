@@ -75,8 +75,8 @@ def base_selection(df: pd.DataFrame) -> tuple:
     return aulas_simples, doub, tri
 
 def transform_classes_dateframe(aulas_raw):
-    aulas_filtrada = filter_class_without_teacher(aulas_raw)
-    aulas_simples,doub,tri=base_selection(aulas_filtrada)
+    #aulas_filtrada = filter_class_without_teacher(aulas_raw)
+    aulas_simples,doub,tri=base_selection(aulas_raw)
 
     # transformando aulas duplas/triplas em 2/3 linhas
     aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
