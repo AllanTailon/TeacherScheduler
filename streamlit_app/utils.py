@@ -1,9 +1,27 @@
 #%%
+import pickle
+from pathlib import Path
+import smtplib
 import pandas as pd
-import numpy as np
-import names
-import random
-import itertools
+import plotly.express as px
+import streamlit as st
+import yaml
+from yaml.loader import SafeLoader
+import streamlit_authenticator as stauth
+from PIL import Image
+import base64
+import os
+from datetime import datetime
+import io
+from teacher_alocation import TeacherScheduler
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
     hora_inicial = pd.to_datetime(row['horario'], format='%H:%M:%S')
@@ -101,3 +119,87 @@ def transform_alocation_dataframe(aulas_raw,base_alocada):
     alocation_df.drop(columns=['professores_alocados'], inplace=True)
     not_alocation_df = alocation_df.loc[((alocation_df['teacher'].isnull())|(alocation_df['teacher']=='-'))].copy()
     return alocation_df, not_alocation_df
+
+def enviar_email_para_todos(combined_df):
+    log_messages = []
+    failed_teachers = []
+
+    for teacher in combined_df['Teacher'].unique():
+        professor_data = combined_df[combined_df['Teacher'] == teacher]
+
+        nome_grupo = professor_data['Nome Grupo'].to_list()
+        email_professor = professor_data['Email'].values[0]
+
+        colunas_desejadas = [
+            'Nome Grupo', 'horario', 'unidade', 'dias da semana', 'stage',
+            'livro', 'modalidade', 'grupo', 'n aulas', 'parag atual grupo',
+            'parag_final_grupo', 'Teacher', 'status', 'zoom', 'n_alunos',
+            'rescisao', 'permuta', 'bolsista', 'n_total_alunos'
+        ]
+
+        professor_data_filtrado = professor_data[colunas_desejadas]
+        arquivo_local = f"C:/Users/Erione Technologies/Documents/GitHub/TeacherScheduler/alocacoes_final/{teacher}_alocacao.xlsx"
+        professor_data_filtrado.to_excel(arquivo_local, index=False)
+
+        professor_info = professor_data_filtrado.to_string(index=False)
+   
+
+
+        nome_grupo_formatado = f"'{nome_grupo[0]}'\n"
+        for grupo in nome_grupo[1:]:
+            nome_grupo_formatado += f"         '{grupo}'\n"
+
+        message = f"""
+        Olá {teacher},
+
+        Você foi alocado nas seguintes turmas:
+
+        {nome_grupo_formatado}
+
+        Segue abaixo, o anexo com as informações detalhadas das turmas.
+
+        Atenciosamente,
+        The Family Idiomas
+        """
+
+
+
+        with open('.devcontainer/config.json') as f:
+            config = json.load(f)
+
+        from_email = 'teacher.scheduler.contact@gmail.com'
+        to_email = email_professor
+        password = config["email_password"]
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = 'Rota das Turmas'
+
+        msg.attach(MIMEText(message, 'plain'))
+
+        with open(arquivo_local, "rb") as attachment:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(attachment.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f"attachment; filename={os.path.basename(arquivo_local)}")
+            msg.attach(part)
+
+        try:
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(from_email, password)
+            text = msg.as_string()
+            server.sendmail(from_email, to_email, text)
+            server.quit()
+            log_messages.append(f"✅ E-mail enviado com sucesso para {teacher}")
+
+        except Exception as e:
+            log_messages.append(f"❌ Falha ao enviar e-mail para {teacher}")
+            failed_teachers.append(teacher)
+
+        os.remove(arquivo_local)
+        print(f'Arquivo {arquivo_local} excluído com sucesso.')
+
+    st.session_state.failed_teachers = failed_teachers
+    return log_messages
