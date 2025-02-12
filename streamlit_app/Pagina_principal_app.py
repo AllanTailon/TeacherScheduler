@@ -12,15 +12,11 @@ import base64
 import os
 from datetime import datetime
 import io
-from utils import transform_classes_dateframe,transform_teacher_dataframe, transform_alocation_dataframe
+from utils import transform_classes_dateframe, transform_teacher_dataframe, transform_alocation_dataframe, enviar_email_para_todos
 from teacher_alocation import TeacherScheduler
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from utils import enviar_email_para_todos
 import json
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 

@@ -17,9 +17,6 @@ from teacher_alocation import TeacherScheduler
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
@@ -120,6 +117,8 @@ def transform_alocation_dataframe(aulas_raw,base_alocada):
     not_alocation_df = alocation_df.loc[((alocation_df['teacher'].isnull())|(alocation_df['teacher']=='-'))].copy()
     return alocation_df, not_alocation_df
 
+import os
+
 def enviar_email_para_todos(combined_df):
     log_messages = []
     failed_teachers = []
@@ -138,12 +137,16 @@ def enviar_email_para_todos(combined_df):
         ]
 
         professor_data_filtrado = professor_data[colunas_desejadas]
-        arquivo_local = f"C:/Users/Erione Technologies/Documents/GitHub/TeacherScheduler/alocacoes_final/{teacher}_alocacao.xlsx"
-        professor_data_filtrado.to_excel(arquivo_local, index=False)
+        
+        diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+        diretorio_destino = os.path.join(diretorio_atual, "alocacoes_final")
+        if not os.path.exists(diretorio_destino):
+            os.makedirs(diretorio_destino)
+
+        arquivo_nuvem = os.path.join(diretorio_destino, f"{teacher}_alocacao.xlsx")
+        professor_data_filtrado.to_excel(arquivo_nuvem, index=False)
 
         professor_info = professor_data_filtrado.to_string(index=False)
-   
-
 
         nome_grupo_formatado = f"'{nome_grupo[0]}'\n"
         for grupo in nome_grupo[1:]:
@@ -162,8 +165,6 @@ def enviar_email_para_todos(combined_df):
         The Family Idiomas
         """
 
-
-
         with open('.devcontainer/config.json') as f:
             config = json.load(f)
 
@@ -178,11 +179,11 @@ def enviar_email_para_todos(combined_df):
 
         msg.attach(MIMEText(message, 'plain'))
 
-        with open(arquivo_local, "rb") as attachment:
+        with open(arquivo_nuvem, "rb") as attachment:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(attachment.read())
             encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f"attachment; filename={os.path.basename(arquivo_local)}")
+            part.add_header('Content-Disposition', f"attachment; filename={os.path.basename(arquivo_nuvem)}")
             msg.attach(part)
 
         try:
@@ -198,8 +199,8 @@ def enviar_email_para_todos(combined_df):
             log_messages.append(f"❌ Falha ao enviar e-mail para {teacher}")
             failed_teachers.append(teacher)
 
-        os.remove(arquivo_local)
-        print(f'Arquivo {arquivo_local} excluído com sucesso.')
+        os.remove(arquivo_nuvem)
+        print(f'Arquivo {arquivo_nuvem} excluído com sucesso.')
 
     st.session_state.failed_teachers = failed_teachers
     return log_messages
