@@ -58,28 +58,14 @@ class validador:
         if dia_da_semana_nao_permitido:
             print("Dia da semana não permitidos para os professores:")
             print(dia_da_semana_nao_permitido)
-
-    def check_possible_days_of_week(self):
-        """
-        Check if the hours in the class are possible
-        """
-        dia_da_semana_nao_permitido = {}
-        for professor in self.df_class[((self.df_class['teacher']!='-')&(self.df_class['teacher'].notnull()))]['teacher'].unique():
-            teste = self.df_class[self.df_class['teacher']==professor]['dias da semana'].unique()
-            prof_horarios = self.df_teach[self.df_teach['TEACHER']==professor][teste]
-            erros = prof_horarios.columns[(prof_horarios == 0).any()].to_list()
-            if erros:
-                dia_da_semana_nao_permitido[professor] = erros
-        if dia_da_semana_nao_permitido:
-            print("Dia da semana não permitidos para os professores:")
-            print(dia_da_semana_nao_permitido)
     
     def check_multiple_classes(self):
         """
         Check if there are multiple classes in the same hour
         """
-        horarios = self.df_class['horario'].unique()
-        for horario in horarios:
-            turmas = self.df_class[self.df_class['horario']==horario]['nome grupo']
-            if turmas.shape[0] > 1:
-                print(f"Multiple classes in the same hour: {turmas}")
+        for professor in self.df_class[((self.df_class['teacher']!='-')&(self.df_class['teacher'].notnull()))]['teacher'].unique():
+            for diasemana in self.df_class[self.df_class['teacher']==professor]['dias da semana'].unique():
+                for horario in self.df_class[self.df_class['teacher']==professor]['horario'].unique():
+                    turmas = self.df_class[(self.df_class['teacher']==professor)&(self.df_class['dias da semana']==diasemana)&(self.df_class['horario']==horario)]['nome grupo'].unique()
+                    if len(turmas)>1:
+                        print(f'Teacher {professor} has multiple classes in the same hour: {turmas}')
