@@ -231,14 +231,10 @@ class TeacherScheduler:
 
     def add_online_constraints(self):
         # Restrição: Professores não podem dar aulas online
-
-        for i in self.df_teach.loc[(self.df_teach['ONLINE'] == 0), 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['status'] == 'ONLINE']['nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
-        
-        for i in self.df_teach.loc[self.df_teach['PRESENCIAL'] == 0, 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['status']=='PRESENCIAL']['nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
+        for sts in ['ONLINE', 'PRESENCIAL']:
+            for i in self.df_teach.loc[(self.df_teach[sts] == 0), 'TEACHER'].to_list():
+                for g in self.df_class.loc[self.df_class['status'] == sts]['nome grupo'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
     
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis

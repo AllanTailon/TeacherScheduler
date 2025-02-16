@@ -9,6 +9,16 @@ class validador:
         self.df_teach = df_teach
         self.teacher_alocated = self.df_class[((self.df_class['teacher']!='-')&(self.df_class['teacher'].notnull()))]['teacher'].unique()
 
+    def check_problem(self):
+
+        self.check_existent_teacher()
+        self.check_existent_hour()
+        self.check_possible_time()
+        self.check_multiple_classes()
+        self.check_modality_group()
+        self.check_teach_status()
+        self.check_days_of_week()
+
     def check_existent_teacher(self):
         """
         Check if there are teachers in the class that are not in the teacher table
@@ -98,4 +108,19 @@ class validador:
                 for s in status:
                     if self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
                         print(f'Teacher {i} cannot teach in status {s}')
+    
+    def check_days_of_week(self):
+        """
+        Check if the days of the week are correct
+        """
+        dias_da_semana = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO']
+        diff = set(self.df_class['dias da semana'].unique()) - set(dias_da_semana)
+        if diff:
+            classes = self.df_class[self.df_class['dias da semana'].isin(diff)]['nome grupo'].unique()
+            print(f'Days of the week are not correct :{diff} for classes : {classes}')
             
+    def check_stage(self):
+        estagio_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['stage'].unique()
+        estagio_allowed = self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False)['stage'].unique()
+        print(f' ESTAGIO com problema: {estagio_list}')
+
