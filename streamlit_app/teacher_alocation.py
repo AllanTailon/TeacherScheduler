@@ -190,8 +190,8 @@ class TeacherScheduler:
     def add_modalidades_constraints(self):
         # Restrição: Professores que não podem dar aulas em determinadas modalidades
 
-        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intemed',
-                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intemed',
+        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intermed',
+                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intermed',
                           'CONV - Esp Avançado','MBA']
         for mod in modality_list:
             for i in self.df_teach.loc[self.df_teach[mod] == 0, 'TEACHER'].to_list():

@@ -18,6 +18,7 @@ class validador:
         self.check_modality_group()
         self.check_teach_status()
         self.check_days_of_week()
+        self.check_stage()
 
     def check_existent_teacher(self):
         """
@@ -121,6 +122,12 @@ class validador:
             
     def check_stage(self):
         estagio_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['stage'].unique()
-        estagio_allowed = self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False)['stage'].unique()
         print(f' ESTAGIO com problema: {estagio_list}')
+
+        for i in self.teacher_alocated:
+            stage = self.df_class.loc[((self.df_class['stage'].str.contains('ESTAGIO|MBA', na=False))&(self.df_class['teacher']==i))]['stage'].unique()
+            if i in self.df_teach['TEACHER'].values:
+                for s in stage:
+                    if self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
+                        print(f'Teacher {i} cannot teach in stage {s}')
 
