@@ -71,6 +71,27 @@ class validador:
             print("Dia da semana não permitidos para os professores:")
             print(dia_da_semana_nao_permitido)
     
+    def check_impossible_time(self):
+        """
+        Check if are classes in the same hour
+        """
+        for professor in self.teacher_alocated:
+            for diasemana in self.df_class[self.df_class['teacher']==professor]['dias da semana'].unique():
+                horarios = pd.to_datetime(self.df_class[(self.df_class['teacher'] == professor) & 
+                                                 (self.df_class['dias da semana'] == diasemana)]['horario']
+                                  .unique(), format="%H:%M:%S")
+                if len(horarios) < 2:
+                    continue
+                
+                # Calcula todas as diferenças possíveis entre os horários
+                diffs = np.diff(horarios)
+
+                # Verifica se alguma diferença é menor que 1 hora
+                exists_diff_less_than_1h = np.any((diffs < pd.Timedelta(hours=1)))
+
+                if exists_diff_less_than_1h:
+                    print(f"Professor {professor} tem horários com diferença menor que 1 hora no dia {diasemana}")
+
     def check_multiple_classes(self):
         """
         Check if there are multiple classes in the same hour
