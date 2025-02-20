@@ -13,12 +13,14 @@ class validador:
 
         self.check_existent_teacher()
         self.check_existent_hour()
-        self.check_possible_time()
+        self.check_allowed_time()
         self.check_multiple_classes()
+        self.check_impossible_time()
         self.check_modality_group()
         self.check_teach_status()
         self.check_days_of_week()
         self.check_stage()
+        self.check_sequence_classes()
 
     def check_existent_teacher(self):
         """
@@ -42,7 +44,7 @@ class validador:
             print(f'Hours not found in the teacher table: {diff} for the classes: {turmas_diff}')
             
 
-    def check_possible_time(self):
+    def check_allowed_time(self):
         """
         Check if the hours in the class are possible
         """
@@ -83,14 +85,15 @@ class validador:
                 if len(horarios) < 2:
                     continue
                 
-                # Calcula todas as diferenças possíveis entre os horários
+                horarios = np.sort(horarios)
+                # Calcula a diferença entre o elemo [a] com [a+1]
                 diffs = np.diff(horarios)
 
                 # Verifica se alguma diferença é menor que 1 hora
-                exists_diff_less_than_1h = np.any((diffs < pd.Timedelta(hours=1)))
+                exists_diff_less_than_1h = np.any((diffs < pd.Timedelta(minutes=60)))
 
                 if exists_diff_less_than_1h:
-                    print(f"Professor {professor} tem horários com diferença menor que 1 hora no dia {diasemana}")
+                    print(f"Professor {professor} tem turmas com diferença menor que 1 hora no dia da semana: {diasemana}")
 
     def check_multiple_classes(self):
         """
@@ -151,4 +154,42 @@ class validador:
                 for s in stage:
                     if self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
                         print(f'Teacher {i} cannot teach in stage {s}')
+    
+    def check_sequence_classes(self):
+        """
+        Verifica se as aulas seguidas são de uma mesma unidade ou se é EAD.
+        """
+        limite_minutos = 90
+
+        for professor in self.teacher_alocated:
+            for diasemana in self.df_class[self.df_class['teacher'] == professor]['dias da semana'].unique():
+                # Filtra as aulas do professor naquele dia
+                df_prof = self.df_class[(self.df_class['teacher'] == professor) & 
+                                        (self.df_class['dias da semana'] == diasemana) &
+                                        (self.df_class['status']=='PRESENCIAL')]
+
+                # Se houver menos de 2 aulas, não há comparação a fazer
+                if len(df_prof) < 2:
+                    continue
+
+                # Ordena pelo horário para facilitar a análise
+                df_prof = df_prof.sort_values(by='horario_tratado')
+
+                # Converte horário para datetime
+
+                # Percorre todas as combinações de aulas para verificar conflitos
+                for i in range(len(df_prof)):
+                    for j in range(i + 1, len(df_prof)):
+                        horario1 = df_prof.iloc[i]['horario_tratado']
+                        horario2 = df_prof.iloc[j]['horario_tratado']
+                        unidade1 = df_prof.iloc[i]['unidade']
+                        unidade2 = df_prof.iloc[j]['unidade']
+                        turma1 = df_prof.iloc[i]['nome grupo']
+                        turma2 = df_prof.iloc[j]['nome grupo']
+
+                        # Verifica se são unidades distintas e a diferença de tempo
+                        diff_minutos = (horario2 - horario1).total_seconds() / 60  # Converte para minutos
+
+                        if unidade1 != unidade2 and 0 < diff_minutos < limite_minutos:
+                            print(f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo.")
 

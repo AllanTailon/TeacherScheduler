@@ -132,7 +132,9 @@ class TeacherScheduler:
 
                 proximos_horarios = [
                     (horario_da_turma + pd.Timedelta(minutes=60)).strftime('%H:%M:%S'),
-                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S')
+                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=80)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=90)).strftime('%H:%M:%S')
                     ]
                 
                 list_minutes = [10,20,30,40,50]
