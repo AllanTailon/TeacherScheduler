@@ -132,7 +132,9 @@ class TeacherScheduler:
 
                 proximos_horarios = [
                     (horario_da_turma + pd.Timedelta(minutes=60)).strftime('%H:%M:%S'),
-                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S')
+                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=80)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=90)).strftime('%H:%M:%S')
                     ]
                 
                 list_minutes = [10,20,30,40,50]
@@ -190,8 +192,8 @@ class TeacherScheduler:
     def add_modalidades_constraints(self):
         # Restrição: Professores que não podem dar aulas em determinadas modalidades
 
-        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intemed',
-                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intemed',
+        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intermed',
+                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intermed',
                           'CONV - Esp Avançado','MBA']
         for mod in modality_list:
             for i in self.df_teach.loc[self.df_teach[mod] == 0, 'TEACHER'].to_list():
@@ -231,14 +233,10 @@ class TeacherScheduler:
 
     def add_online_constraints(self):
         # Restrição: Professores não podem dar aulas online
-
-        for i in self.df_teach.loc[(self.df_teach['ONLINE'] == 0), 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['status'] == 'ONLINE']['nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
-        
-        for i in self.df_teach.loc[self.df_teach['PRESENCIAL'] == 0, 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['status']=='PRESENCIAL']['nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
+        for sts in ['ONLINE', 'PRESENCIAL']:
+            for i in self.df_teach.loc[(self.df_teach[sts] == 0), 'TEACHER'].to_list():
+                for g in self.df_class.loc[self.df_class['status'] == sts]['nome grupo'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
     
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis

@@ -14,6 +14,7 @@ from datetime import datetime
 import io
 from utils import transform_classes_dateframe, transform_teacher_dataframe, transform_alocation_dataframe, enviar_email_para_todos
 from teacher_alocation import TeacherScheduler
+from validador import validador
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
@@ -132,6 +133,15 @@ elif authentication_status:
                 professores_raw = pd.read_excel(professores_uploaded_file)
                 st.dataframe(professores_raw)
 
+                if st.button("Verificar Dados"):
+                     with st.spinner(text="Validando Dados..."):
+                        
+                        classes_result = transform_classes_dateframe(aulas_raw)
+                        professores_result = transform_teacher_dataframe(professores_raw)
+                        Validador = validador(classes_result, professores_result)
+                        Validador.check_problem()
+                        st.success("Feito!")
+                         
                 if st.button("Gerar Rotas"):
                     
                     with st.spinner(text="Gerando Rotas..."):
