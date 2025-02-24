@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+import smtplib
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -11,9 +12,14 @@ import base64
 import os
 from datetime import datetime
 import io
-from utils import transform_classes_dateframe,transform_teacher_dataframe, transform_alocation_dataframe
+from utils import transform_classes_dateframe, transform_teacher_dataframe, transform_alocation_dataframe, enviar_email_para_todos
 from teacher_alocation import TeacherScheduler
 from validador import validador
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import json
+from email.mime.base import MIMEBase
+from email import encoders
 
 st.set_page_config(
     page_title="Teacher Scheduler",
@@ -102,12 +108,15 @@ elif authentication_status:
     if st.sidebar.button("📅 Planejador de rota"):
         st.session_state.selected_page = "📅 Planejador de Rota"
 
-    if st.sidebar.button("📞 Contate-nos"):
-        st.session_state.selected_page = "📞 Contate-nos"
+    if st.sidebar.button("📧 Enviar Rota"):
+        st.session_state.selected_page = "📧 Enviar Rota"
+
+    if st.sidebar.button("🔄️ Substituições"):
+        st.session_state.selected_page = "🔄️ Substituições"
 
 
     # Primeira Página
-    elif st.session_state.selected_page == "📅 Planejador de Rota":
+    if st.session_state.selected_page == "📅 Planejador de Rota":
         st.header("📅 Planejador de rota")
 
         st.subheader("Upload do arquivo da Rota")
@@ -166,32 +175,66 @@ elif authentication_status:
             st.warning("Por favor, faça o upload do arquivo da Rota primeiro.")
 
 
-    # Segunda Página
-    elif st.session_state.selected_page == "📞 Contate-nos":
-        st.header("📞 Abra um chamado")
+    # Página de envio de email
+    elif st.session_state.selected_page == "📧 Enviar Rota":
+        st.header("📧 Enviar Rota por e-mail")
 
-        contact_form = """
-        <form action="https://formsubmit.co/teacher.scheduler.contact@gmail.com" method="POST">
-            <input type="hidden" name="_captcha" value="false">
-            <input type="text" name="name" placeholder="Digite seus nome" required>
-            <input type="email" name="email" placeholder="Digite seu e-mail" required>
-            <textarea name="message" placeholder="Digite sua mensagem"></textarea>
-            <button type="submit">Enviar</button>
-        </form>
-        """
-        st.markdown(contact_form, unsafe_allow_html=True)
+        LOG_FILE = "logs.json"
 
-        @st.cache_data
-        def load_css():
-            file_path = "streamlit_app/style/style.css"
-            with open(file_path) as f:
-                return f.read()
+        def load_logs():
+            if os.path.exists(LOG_FILE):
+                with open(LOG_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            return []
 
-        try:
-            css_content = load_css()
-            st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
-        except FileNotFoundError:
-            st.error("CSS file not found.")
+        def save_logs(log_messages):
+            with open(LOG_FILE, "w", encoding="utf-8") as f:
+                json.dump(log_messages, f, indent=4)
+
+        log_messages = load_logs()
+
+        rota_uploaded_file = st.file_uploader("Faça o upload do arquivo da Rota gerada", type=["xlsx"], key="rota_uploader")
+
+        st._main.markdown("---")
+
+        emails_uploaded_file = st.file_uploader("Faça o upload do arquivo da Base de Professores", type=["xlsx"], key="emails_uploader_2")
+
+        if rota_uploaded_file and emails_uploaded_file:
+            rotas_df = pd.read_excel(rota_uploaded_file)
+            emails_df = pd.read_excel(emails_uploaded_file)
+
+            rotas_df.rename(columns={'teacher': 'Teacher', 'nome grupo': 'Nome Grupo'}, inplace=True)
+            emails_df.rename(columns={'TEACHER': 'Teacher'}, inplace=True)
+
+            if 'Teacher' in rotas_df.columns and 'Teacher' in emails_df.columns and 'Nome Grupo' in rotas_df.columns:
+                combined_df = pd.merge(rotas_df, emails_df, on="Teacher", how="left")
+
+                if st.button("📧 Enviar e-mail para os professores"):
+                    with st.spinner("Enviando e-mails..."):
+                        new_logs = enviar_email_para_todos(combined_df)
+                        log_messages.extend(new_logs)
+
+                        save_logs(log_messages)
+
+                    st.success("Processo de envio finalizado!")
+
+        if log_messages:
+            st.subheader("📜 Logs de Envios")
+            st.code("\n".join(log_messages), language="plaintext")
+
+            if st.button("🗑️ Deletar Logs"):
+                os.remove(LOG_FILE)
+                st.rerun()
+
+
+
+    # Terceira Página MANUTENÇÃO
+    elif st.session_state.selected_page == "🔄️ Substituições":
+        st.header("🔄️ Tabela de Substituições")
+
+
+
+
 
     st.sidebar.markdown("---")
 
