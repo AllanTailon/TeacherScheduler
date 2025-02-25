@@ -1,24 +1,15 @@
 #%%
-import pickle
-from pathlib import Path
 import smtplib
 import pandas as pd
-import plotly.express as px
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
-from PIL import Image
-import base64
+import pandas as pd
 import os
-from datetime import datetime
-import io
-from teacher_alocation import TeacherScheduler
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
 from email.mime.base import MIMEBase
 from email import encoders
+import numpy as np
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
     hora_inicial = pd.to_datetime(row['horario'], format='%H:%M:%S')

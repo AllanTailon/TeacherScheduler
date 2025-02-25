@@ -32,7 +32,6 @@ class validador:
         diff = set(teachers_pre_alocado) - set(teachers)
         if diff:
             message = f'Professor nao encontrado na tabela de professores: {diff}'
-            print(message)
             st.write(message)
 
     def check_existent_hour(self):
@@ -45,7 +44,6 @@ class validador:
         turmas_diff = self.df_class[self.df_class['horario'].isin(diff)]['nome grupo'].unique()
         if diff:
             message = f'Horário nao encontrado na tabela de professores: {diff} para as turmas: {turmas_diff}'
-            print(message)
             st.write(message)
             
 
@@ -73,11 +71,9 @@ class validador:
 
         if horarios_nao_permitido:
             message1 = f'Horários não permitidos para os professores: {horarios_nao_permitido}'
-            print(message1)
             st.write(message1)
         if dia_da_semana_nao_permitido:
             message2 = f'Dia da semana não permitidos para os professores: {dia_da_semana_nao_permitido}'
-            print(message2)
             st.write(message2)
     
     def check_impossible_time(self):
@@ -101,7 +97,6 @@ class validador:
 
                 if exists_diff_less_than_1h:
                     message = f"Professor {professor} tem turmas com diferença menor que 1 hora no dia da semana: {diasemana}"
-                    print(message)
                     st.write(message)
 
     def check_multiple_classes(self):
@@ -114,7 +109,6 @@ class validador:
                     turmas = self.df_class[(self.df_class['teacher']==professor)&(self.df_class['dias da semana']==diasemana)&(self.df_class['horario']==horario)]['nome grupo'].unique()
                     if len(turmas)>1:
                         message = f'Professor {professor} possui turmas no mesmo horario: {turmas}'
-                        print(message)
                         st.write(message)
     
     def check_modality_group(self):
@@ -131,12 +125,19 @@ class validador:
         aulas_grupo = self.df_class[self.df_class['grupo'].isin(diff_grupo)]['nome grupo'].unique()
         if diff_mod:
             message1 = f'Modalidade nao encontrada na tabela de professores: {diff_mod} para a seguintes turmas: {aulas_mod}'
-            print(message1)
             st.write(message1)
         if diff_grupo:
             message2 = f'Grupos nao encontrado na tabela de professores: {diff_grupo} para a seguintes turmas: {aulas_grupo}'
-            print(message2)
             st.write(message2)
+        
+        for i in self.teacher_alocated:
+            if i in self.df_teach['TEACHER'].unique():
+                mod = self.df_class[self.df_class['teacher']==i]['modalidade'].unique()
+                for m in mod:
+                    if m != 'Inglês':
+                        if self.df_teach[self.df_teach['TEACHER']==i][m].values[0] == 0:
+                            message = f'Professor {i} nao pode dar aula na modalidade: {m}'
+                            st.write(message)
 
     def check_teach_status(self):
         """
@@ -148,7 +149,6 @@ class validador:
                 for s in status:
                     if self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
                         message= f'Professor {i} nao pode dar aula no status: {s}'
-                        print(message)
                         st.write(message)
     
     def check_days_of_week(self):
@@ -160,22 +160,19 @@ class validador:
         if diff:
             classes = self.df_class[self.df_class['dias da semana'].isin(diff)]['nome grupo'].unique()
             message = f'Dia da semana nao está certo :{diff} para a turma : {classes}'
-            print(message)
             st.write(message)
             
     def check_stage(self):
         estagio_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['stage'].unique()
         message = f' ESTAGIO com problema: {estagio_list}'
-        print(message)
         st.write(message)
 
         for i in self.teacher_alocated:
-            stage = self.df_class.loc[((self.df_class['stage'].str.contains('ESTAGIO|MBA', na=False))&(self.df_class['teacher']==i))]['stage'].unique()
+            stage = self.df_class.loc[((self.df_class['stage'].str.contains('ESTAGIO', na=False))&(self.df_class['teacher']==i)&(self.df_class['modalidade']!='Espanhol'))]['stage'].unique()
             if i in self.df_teach['TEACHER'].values:
                 for s in stage:
                     if self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
                         message = f'Professor {i} nao pode dar aula no estagio: {s}'
-                        print(message)
                         st.write(message)
     
     def check_sequence_classes(self):
@@ -215,6 +212,5 @@ class validador:
 
                         if unidade1 != unidade2 and 0 < diff_minutos < limite_minutos:
                             message = f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo."
-                            print(message)
                             st.write(message)
 
