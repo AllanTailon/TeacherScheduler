@@ -225,10 +225,10 @@ class TeacherScheduler:
     def add_estagio_constraints(self):
         # Restrição: Professores que não podem dar aulas em estágios
 
-        estagio_list = self.df_class.loc[self.df_class['stage'].str.contains('ESTAGIO|MBA', na=False)]['stage'].unique()
+        estagio_list = self.df_class.loc[self.df_class['stage'].str.contains('ESTAGIO', na=False)]['stage'].unique()
         for est in estagio_list:
             for i in self.df_teach.loc[self.df_teach[est] == 0, 'TEACHER'].to_list():
-                for g in self.df_class.loc[self.df_class['stage'] == est, 'nome grupo'].unique():
+                for g in self.df_class.loc[((self.df_class['stage'] == est)&(self.df_class['modalidade']!='Espanhol')), 'nome grupo'].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_online_constraints(self):

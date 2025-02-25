@@ -1,25 +1,15 @@
 import pickle
 from pathlib import Path
-import smtplib
 import pandas as pd
-import plotly.express as px
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
-from PIL import Image
 import base64
 import os
-from datetime import datetime
 import io
 from utils import transform_classes_dateframe, transform_teacher_dataframe, transform_alocation_dataframe, enviar_email_para_todos
 from teacher_alocation import TeacherScheduler
 from validador import validador
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import json
-from email.mime.base import MIMEBase
-from email import encoders
 
 st.set_page_config(
     page_title="Teacher Scheduler",
