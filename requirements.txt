@@ -11,3 +11,4 @@ pathlib
 datetime
 names
 ortools==9.11.4210
+xlsxwriter
