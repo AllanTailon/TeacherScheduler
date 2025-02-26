@@ -33,8 +33,8 @@ def load_image(image_file):
 image_path = "streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
-names = ["Luiza Bindel", "Henrique Marcondes"]
-usernames = ["LuizaB", "HenriqueM"]
+names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
+usernames = ["admin", "LuizaB", "HenriqueM"]
 
 cookie_name = "Teacher Scheduler"
 key = "abcdef"
@@ -201,7 +201,7 @@ elif authentication_status:
 
                 if st.button("📧 Enviar e-mail para os professores"):
                     with st.spinner("Enviando e-mails..."):
-                        new_logs = enviar_email_para_todos(combined_df)
+                        new_logs = enviar_email_para_todos(combined_df, rota_uploaded_file)
                         log_messages.extend(new_logs)
 
                         save_logs(log_messages)
@@ -215,7 +215,6 @@ elif authentication_status:
             if st.button("🗑️ Deletar Logs"):
                 os.remove(LOG_FILE)
                 st.rerun()
-
 
 
     # Terceira Página MANUTENÇÃO

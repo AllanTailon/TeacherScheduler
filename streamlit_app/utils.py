@@ -1,24 +1,31 @@
 #%%
-import pickle
-from pathlib import Path
+import os
+import json
 import smtplib
+import pickle
+import base64
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
-from PIL import Image
-import base64
-import os
-from datetime import datetime
 import io
-from teacher_alocation import TeacherScheduler
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import json
-from email.mime.base import MIMEBase
+
+from datetime import datetime
+from pathlib import Path
+from yaml.loader import SafeLoader
+from PIL import Image
+
 from email import encoders
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill, Font, Border
+
+import streamlit_authenticator as stauth
+from teacher_alocation import TeacherScheduler
+
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
     hora_inicial = pd.to_datetime(row['horario'], format='%H:%M:%S')
@@ -117,53 +124,52 @@ def transform_alocation_dataframe(aulas_raw,base_alocada):
     not_alocation_df = alocation_df.loc[((alocation_df['teacher'].isnull())|(alocation_df['teacher']=='-'))].copy()
     return alocation_df, not_alocation_df
 
-import os
-
-def enviar_email_para_todos(combined_df):
+def enviar_email_para_todos(combined_df, arquivo_original):
     log_messages = []
     failed_teachers = []
+
+    wb_original = load_workbook(arquivo_original)
+    ws_original = wb_original.active
 
     for teacher in combined_df['Teacher'].unique():
         professor_data = combined_df[combined_df['Teacher'] == teacher]
 
+        if professor_data.empty or pd.isna(teacher) or teacher == '':
+            continue
+
         nome_grupo = professor_data['Nome Grupo'].to_list()
         email_professor = professor_data['Email'].values[0]
 
-        colunas_desejadas = [
-            'Nome Grupo', 'horario', 'unidade', 'dias da semana', 'stage',
-            'livro', 'modalidade', 'grupo', 'n aulas', 'parag atual grupo',
-            'parag_final_grupo', 'Teacher', 'status', 'zoom', 'n_alunos',
-            'rescisao', 'permuta', 'bolsista', 'n_total_alunos'
-        ]
+        wb_professor = load_workbook(arquivo_original)
+        ws_professor = wb_professor.active
 
-        professor_data_filtrado = professor_data[colunas_desejadas]
-        
+        # Ocultar as linhas que não correspondem ao professor
+        for row_idx in range(2, ws_professor.max_row + 1):
+            nome_grupo_linha = ws_professor.cell(row=row_idx, column=1).value
+            if nome_grupo_linha not in nome_grupo:
+                ws_professor.row_dimensions[row_idx].hidden = True
+            else:
+                ws_professor.row_dimensions[row_idx].hidden = False
+
+        # Salvar o arquivo filtrado para o professor
         diretorio_atual = os.path.dirname(os.path.abspath(__file__))
         diretorio_destino = os.path.join(diretorio_atual, "alocacoes_final")
         if not os.path.exists(diretorio_destino):
             os.makedirs(diretorio_destino)
 
         arquivo_nuvem = os.path.join(diretorio_destino, f"{teacher}_alocacao.xlsx")
-        professor_data_filtrado.to_excel(arquivo_nuvem, index=False)
+        wb_professor.save(arquivo_nuvem)
 
-        professor_info = professor_data_filtrado.to_string(index=False)
+        nome_grupo_formatado = "\n".join(f"    {grupo}" for grupo in nome_grupo)
 
-        nome_grupo_formatado = f"'{nome_grupo[0]}'\n"
-        for grupo in nome_grupo[1:]:
-            nome_grupo_formatado += f"         '{grupo}'\n"
-
-        message = f"""
-        Olá {teacher},
-
-        Você foi alocado nas seguintes turmas:
-
-        {nome_grupo_formatado}
-
-        Segue abaixo, o anexo com as informações detalhadas das turmas.
-
-        Atenciosamente,
-        The Family Idiomas
-        """
+        message = (
+            f"Olá {teacher},\n\n"
+            f"Você foi alocado nas seguintes turmas:\n\n"
+            f"{nome_grupo_formatado}\n\n"
+            f"Segue abaixo, o anexo com as informações detalhadas das turmas.\n\n"
+            f"Atenciosamente,\n"
+            f"The Family Idiomas"
+        )
 
         with open('.devcontainer/config.json') as f:
             config = json.load(f)
@@ -194,7 +200,6 @@ def enviar_email_para_todos(combined_df):
             server.sendmail(from_email, to_email, text)
             server.quit()
             log_messages.append(f"✅ E-mail enviado com sucesso para {teacher}")
-
         except Exception as e:
             log_messages.append(f"❌ Falha ao enviar e-mail para {teacher}")
             failed_teachers.append(teacher)
