@@ -1,24 +1,15 @@
 import pickle
 from pathlib import Path
-import smtplib
 import pandas as pd
-import plotly.express as px
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
-from PIL import Image
 import base64
 import os
-from datetime import datetime
 import io
 from utils import transform_classes_dateframe, transform_teacher_dataframe, transform_alocation_dataframe, enviar_email_para_todos
 from teacher_alocation import TeacherScheduler
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from validador import validador
 import json
-from email.mime.base import MIMEBase
-from email import encoders
 
 st.set_page_config(
     page_title="Teacher Scheduler",
@@ -132,6 +123,15 @@ elif authentication_status:
                 professores_raw = pd.read_excel(professores_uploaded_file)
                 st.dataframe(professores_raw)
 
+                if st.button("Verificar Dados"):
+                     with st.spinner(text="Validando Dados..."):
+                        
+                        classes_result = transform_classes_dateframe(aulas_raw)
+                        professores_result = transform_teacher_dataframe(professores_raw)
+                        Validador = validador(classes_result, professores_result)
+                        Validador.check_problem()
+                        st.success("Feito!")
+                         
                 if st.button("Gerar Rotas"):
                     
                     with st.spinner(text="Gerando Rotas..."):
