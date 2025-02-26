@@ -1,6 +1,7 @@
 from ortools.sat.python import cp_model
 import pandas as pd
 import random
+import numpy as np
 
 class TeacherScheduler:
     """
@@ -173,12 +174,17 @@ class TeacherScheduler:
     def add_consectives_teacher_constrains(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos
 
-        for g in self.df_class['nome grupo'].unique():
-            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['ultimo_professor'].values[0]
-            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['penultimo_professor'].values[0]
-            if last_teacher not in ['nan', '-', None] and pd.notna(last_teacher):
+        for g in self.df_class[self.df_class['teacher'].isin(['-', None, np.nan])]['nome grupo'].unique():
+            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'ultimo_professor'].dropna().values
+            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'penultimo_professor'].dropna().values
+            
+            last_teacher = last_teacher[0] if len(last_teacher) > 0 else None
+            before_last_teacher = before_last_teacher[0] if len(before_last_teacher) > 0 else None
+
+            if last_teacher and last_teacher in self.alocacoes:
                 self.model.Add(self.alocacoes[(last_teacher, g)] == 0)
-            if before_last_teacher not in ['nan', '-', None] and pd.notna(before_last_teacher):
+
+            if before_last_teacher and before_last_teacher in self.alocacoes:
                 self.model.Add(self.alocacoes[(before_last_teacher, g)] == 0)
 
     def add_restriction_teacher_constrains(self):
