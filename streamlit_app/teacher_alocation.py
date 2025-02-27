@@ -174,17 +174,14 @@ class TeacherScheduler:
     def add_consectives_teacher_constrains(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos
 
-        for g in self.df_class[self.df_class['teacher'].isin(['-', None, np.nan])]['nome grupo'].unique():
-            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'ultimo_professor'].dropna().values
-            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'penultimo_professor'].dropna().values
-            
-            last_teacher = last_teacher[0] if len(last_teacher) > 0 else None
-            before_last_teacher = before_last_teacher[0] if len(before_last_teacher) > 0 else None
+        for g in self.df_class[((self.df_class['teacher']=='-')|(self.df_class['teacher'].isnull()))]['nome grupo'].unique():
+            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'ultimo_professor'].dropna().unique()[0]
+            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'penultimo_professor'].dropna().unique()[0]
 
-            if last_teacher and last_teacher in self.alocacoes:
+            if last_teacher in self.df_teach['TEACHER'].values and last_teacher != 'nan':
                 self.model.Add(self.alocacoes[(last_teacher, g)] == 0)
 
-            if before_last_teacher and before_last_teacher in self.alocacoes:
+            if before_last_teacher in self.df_teach['TEACHER'].values and before_last_teacher != 'nan':
                 self.model.Add(self.alocacoes[(before_last_teacher, g)] == 0)
 
     def add_modalidades_constraints(self):

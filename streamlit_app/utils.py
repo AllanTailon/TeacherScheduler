@@ -24,7 +24,6 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font, Border
 
 import streamlit_authenticator as stauth
-from teacher_alocation import TeacherScheduler
 
 import numpy as np
 
