@@ -1,6 +1,7 @@
 from ortools.sat.python import cp_model
 import pandas as pd
 import random
+import numpy as np
 
 class TeacherScheduler:
     """
@@ -71,7 +72,6 @@ class TeacherScheduler:
         self.add_schedule_constraints()
         self.add_consecutive_group_constraints()
         self.add_consectives_teacher_constrains()
-        self.add_restriction_teacher_constrains()
         self.add_modalidades_constraints()
         self.add_grupo_constraints()
         self.add_class_per_teacher_constraints()
@@ -79,6 +79,7 @@ class TeacherScheduler:
         self.add_online_constraints()
         self.add_time_constraints()
         self.add_intensive_constraints()
+        self.add_restrictions_constraints()
         self.add_objective()
         
         prof_alocados = self.solve(seed = seed)
@@ -132,7 +133,9 @@ class TeacherScheduler:
 
                 proximos_horarios = [
                     (horario_da_turma + pd.Timedelta(minutes=60)).strftime('%H:%M:%S'),
-                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S')
+                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=80)).strftime('%H:%M:%S'),
+                    (horario_da_turma + pd.Timedelta(minutes=90)).strftime('%H:%M:%S')
                     ]
                 
                 list_minutes = [10,20,30,40,50]
@@ -171,27 +174,24 @@ class TeacherScheduler:
     def add_consectives_teacher_constrains(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos
 
-        for g in self.df_class['nome grupo'].unique():
-            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['ultimo_professor'].values[0]
-            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g]['penultimo_professor'].values[0]
-            if last_teacher not in ['nan', '-', None] and pd.notna(last_teacher):
+        for g in self.df_class[self.df_class['teacher'].isin(['-', None, np.nan])]['nome grupo'].unique():
+            last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'ultimo_professor'].dropna().values
+            before_last_teacher = self.df_class.loc[self.df_class['nome grupo'] == g, 'penultimo_professor'].dropna().values
+            
+            last_teacher = last_teacher[0] if len(last_teacher) > 0 else None
+            before_last_teacher = before_last_teacher[0] if len(before_last_teacher) > 0 else None
+
+            if last_teacher and last_teacher in self.alocacoes:
                 self.model.Add(self.alocacoes[(last_teacher, g)] == 0)
-            if before_last_teacher not in ['nan', '-', None] and pd.notna(before_last_teacher):
+
+            if before_last_teacher and before_last_teacher in self.alocacoes:
                 self.model.Add(self.alocacoes[(before_last_teacher, g)] == 0)
-
-    def add_restriction_teacher_constrains(self):
-        # Restrição: Professores que não podem dar aulas em determinados grupos
-
-        for g in self.df_class['nome grupo'].unique():
-            prof_restrict = self.df_class.loc[self.df_class['nome grupo'] == g]['restricoes_professor'].values[0]
-            if prof_restrict not in ['nan', '-', None] and pd.notna(prof_restrict):
-                self.model.Add(self.alocacoes[(prof_restrict, g)] == 0)
 
     def add_modalidades_constraints(self):
         # Restrição: Professores que não podem dar aulas em determinadas modalidades
 
-        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intemed',
-                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intemed',
+        modality_list = [ 'Espanhol','Kids','CONV - Ing Prep','CONV - Ing Intermed',
+                          'CONV - Ing Avançado','CONV - Esp Prep','CONV - Esp Intermed',
                           'CONV - Esp Avançado','MBA']
         for mod in modality_list:
             for i in self.df_teach.loc[self.df_teach[mod] == 0, 'TEACHER'].to_list():
@@ -223,22 +223,18 @@ class TeacherScheduler:
     def add_estagio_constraints(self):
         # Restrição: Professores que não podem dar aulas em estágios
 
-        estagio_list = self.df_class.loc[self.df_class['stage'].str.contains('ESTAGIO|MBA', na=False)]['stage'].unique()
+        estagio_list = self.df_class.loc[self.df_class['stage'].str.contains('ESTAGIO', na=False)]['stage'].unique()
         for est in estagio_list:
             for i in self.df_teach.loc[self.df_teach[est] == 0, 'TEACHER'].to_list():
-                for g in self.df_class.loc[self.df_class['stage'] == est, 'nome grupo'].unique():
+                for g in self.df_class.loc[((self.df_class['stage'] == est)&(self.df_class['modalidade']!='Espanhol')), 'nome grupo'].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_online_constraints(self):
         # Restrição: Professores não podem dar aulas online
-
-        for i in self.df_teach.loc[(self.df_teach['ONLINE'] == 0), 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['status'] == 'ONLINE']['nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
-        
-        for i in self.df_teach.loc[self.df_teach['PRESENCIAL'] == 0, 'TEACHER'].to_list():
-            for g in self.df_class.loc[self.df_class['status']=='PRESENCIAL']['nome grupo'].unique():
-                self.model.Add(self.alocacoes[(i, g)] == 0)
+        for sts in ['ONLINE', 'PRESENCIAL']:
+            for i in self.df_teach.loc[(self.df_teach[sts] == 0), 'TEACHER'].to_list():
+                for g in self.df_class.loc[self.df_class['status'] == sts]['nome grupo'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
     
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis
@@ -279,6 +275,15 @@ class TeacherScheduler:
         for i in self.df_teach.loc[self.df_teach['INTENSIVÃO'] == 0, 'TEACHER'].to_list():
             for g in self.df_class.loc[self.df_class['n aulas'] >= 10, 'nome grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
+    
+    def add_restrictions_constraints(self):
+        # Restrição: Professores que não podem dar aulas em determinados grupos
+
+        for g in self.df_class[self.df_class['restricoes_professor'].notnull()]['nome grupo'].unique():
+            restricoes_prof = self.df_class[self.df_class['nome grupo']==g]['restricoes_professor'].unique()[0].split(',')
+            for i in restricoes_prof:
+                if i in self.df_teach['TEACHER'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_objective(self):
         total_allocation = sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique() for g in self.df_class['nome grupo'].unique())
