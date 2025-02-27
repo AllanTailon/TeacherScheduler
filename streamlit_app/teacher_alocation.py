@@ -72,7 +72,6 @@ class TeacherScheduler:
         self.add_schedule_constraints()
         self.add_consecutive_group_constraints()
         self.add_consectives_teacher_constrains()
-        self.add_restriction_teacher_constrains()
         self.add_modalidades_constraints()
         self.add_grupo_constraints()
         self.add_class_per_teacher_constraints()
@@ -80,6 +79,7 @@ class TeacherScheduler:
         self.add_online_constraints()
         self.add_time_constraints()
         self.add_intensive_constraints()
+        self.add_restrictions_constraints()
         self.add_objective()
         
         prof_alocados = self.solve(seed = seed)
@@ -187,14 +187,6 @@ class TeacherScheduler:
             if before_last_teacher and before_last_teacher in self.alocacoes:
                 self.model.Add(self.alocacoes[(before_last_teacher, g)] == 0)
 
-    def add_restriction_teacher_constrains(self):
-        # Restrição: Professores que não podem dar aulas em determinados grupos
-
-        for g in self.df_class['nome grupo'].unique():
-            prof_restrict = self.df_class.loc[self.df_class['nome grupo'] == g]['restricoes_professor'].values[0]
-            if prof_restrict not in ['nan', '-', None] and pd.notna(prof_restrict):
-                self.model.Add(self.alocacoes[(prof_restrict, g)] == 0)
-
     def add_modalidades_constraints(self):
         # Restrição: Professores que não podem dar aulas em determinadas modalidades
 
@@ -283,6 +275,15 @@ class TeacherScheduler:
         for i in self.df_teach.loc[self.df_teach['INTENSIVÃO'] == 0, 'TEACHER'].to_list():
             for g in self.df_class.loc[self.df_class['n aulas'] >= 10, 'nome grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 0)
+    
+    def add_restrictions_constraints(self):
+        # Restrição: Professores que não podem dar aulas em determinados grupos
+
+        for g in self.df_class[self.df_class['restricoes_professor'].notnull()]['nome grupo'].unique():
+            restricoes_prof = self.df_class[self.df_class['nome grupo']==g]['restricoes_professor'].unique()[0].split(',')
+            for i in restricoes_prof:
+                if i in self.df_teach['TEACHER'].unique():
+                    self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_objective(self):
         total_allocation = sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique() for g in self.df_class['nome grupo'].unique())
