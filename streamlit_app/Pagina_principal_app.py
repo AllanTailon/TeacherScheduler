@@ -24,8 +24,8 @@ def load_image(image_file):
 image_path = "streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
-names = ["Luiza Bindel", "Henrique Marcondes"]
-usernames = ["LuizaB", "HenriqueM"]
+names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
+usernames = ["admin", "LuizaB", "HenriqueM"]
 
 cookie_name = "Teacher Scheduler"
 key = "abcdef"
@@ -165,11 +165,12 @@ elif authentication_status:
             st.warning("Por favor, faça o upload do arquivo da Rota primeiro.")
 
 
+
     # Página de envio de email
     elif st.session_state.selected_page == "📧 Enviar Rota":
         st.header("📧 Enviar Rota por e-mail")
 
-        LOG_FILE = "logs.json"
+        LOG_FILE = "logs_temp.json"  # Arquivo temporário para armazenar os logs
 
         def load_logs():
             if os.path.exists(LOG_FILE):
@@ -181,7 +182,8 @@ elif authentication_status:
             with open(LOG_FILE, "w", encoding="utf-8") as f:
                 json.dump(log_messages, f, indent=4)
 
-        log_messages = load_logs()
+        if "log_messages" not in st.session_state:
+            st.session_state.log_messages = load_logs()
 
         rota_uploaded_file = st.file_uploader("Faça o upload do arquivo da Rota gerada", type=["xlsx"], key="rota_uploader")
 
@@ -201,19 +203,20 @@ elif authentication_status:
 
                 if st.button("📧 Enviar e-mail para os professores"):
                     with st.spinner("Enviando e-mails..."):
-                        new_logs = enviar_email_para_todos(combined_df)
-                        log_messages.extend(new_logs)
-
-                        save_logs(log_messages)
+                        new_logs = enviar_email_para_todos(combined_df, rota_uploaded_file)
+                        st.session_state.log_messages.extend(new_logs)
+                        save_logs(st.session_state.log_messages)
 
                     st.success("Processo de envio finalizado!")
 
-        if log_messages:
+        if st.session_state.log_messages:
             st.subheader("📜 Logs de Envios")
-            st.code("\n".join(log_messages), language="plaintext")
+            st.code("\n".join(st.session_state.log_messages), language="plaintext")
 
             if st.button("🗑️ Deletar Logs"):
-                os.remove(LOG_FILE)
+                st.session_state.log_messages = []
+                if os.path.exists(LOG_FILE):
+                    os.remove(LOG_FILE)
                 st.rerun()
 
 
