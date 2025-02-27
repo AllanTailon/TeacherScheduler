@@ -26,6 +26,8 @@ from openpyxl.styles import PatternFill, Font, Border
 import streamlit_authenticator as stauth
 from teacher_alocation import TeacherScheduler
 
+import numpy as np
+
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
     hora_inicial = pd.to_datetime(row['horario'], format='%H:%M:%S')
