@@ -164,8 +164,10 @@ class validador:
             
     def check_stage(self):
         estagio_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['stage'].unique()
-        message = f' ESTAGIO com problema: {estagio_list}'
-        st.write(message)
+        turmas_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['nome grupo'].unique()
+        if estagio_list:
+            message = f' ESTAGIO com problema: {estagio_list} para os estagios: {turmas_list}'
+            st.write(message)
 
         for i in self.teacher_alocated:
             stage = self.df_class.loc[((self.df_class['stage'].str.contains('ESTAGIO', na=False))&(self.df_class['teacher']==i)&(self.df_class['modalidade']!='Espanhol'))]['stage'].unique()
@@ -210,7 +212,7 @@ class validador:
                         # Verifica se são unidades distintas e a diferença de tempo
                         diff_minutos = (horario2 - horario1).total_seconds() / 60  # Converte para minutos
 
-                        if unidade1 != unidade2 and 0 < diff_minutos < limite_minutos:
+                        if unidade1 != unidade2 and 0 < diff_minutos <= limite_minutos:
                             message = f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo."
                             st.write(message)
 
