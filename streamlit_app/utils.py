@@ -115,7 +115,7 @@ def transform_classes_dateframe(aulas_raw):
 def transform_teacher_dataframe(professores_raw):
     professores_raw.columns = professores_raw.columns.astype(str)
     if professores_raw.columns.str.contains('FERIAS').any():
-        professores_raw = professores_raw[professores_raw['FERIAS']!=0].copy()
+        professores_raw = professores_raw[professores_raw['FERIAS']!=1].copy()
     return professores_raw
 
 def transform_alocation_dataframe(aulas_raw,base_alocada):
