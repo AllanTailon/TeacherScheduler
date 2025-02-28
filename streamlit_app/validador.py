@@ -165,7 +165,7 @@ class validador:
     def check_stage(self):
         estagio_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['stage'].unique()
         turmas_list = self.df_class.loc[~(self.df_class['stage'].str.contains('ESTAGIO|MBA|CONV', na=False))]['nome grupo'].unique()
-        if estagio_list:
+        if len(estagio_list) > 0:
             message = f' ESTAGIO com problema: {estagio_list} para os estagios: {turmas_list}'
             st.write(message)
 
