@@ -63,7 +63,7 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
         '4ª': 'QUARTA',
         '5ª': 'QUINTA',
         '6ª': 'SEXTA',
-        'SATURDAY': 'SÁBADO'
+        'Saturday': 'SÁBADO'
     }
 
     df['dias da semana'] = df['dias da semana'].replace(substituicoes, regex=True)
