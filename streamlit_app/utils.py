@@ -49,7 +49,7 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
 
     df['intenviso'] = np.where(df['n aulas']>=10,1,0)
 
-    df['dias da semana'] = df['dias da semana'].str.replace('●',',').str.replace(' ','').str.replace('DOUBLE',',').str.replace('-Triple','').str.split(',')
+    df['dias da semana'] = df['dias da semana'].str.replace('●',',').str.replace(' ','').str.replace('DOUBLE',',').str.replace('SINGLE','').str.replace('-Triple','').str.split(',')
     df = df.explode('dias da semana').reset_index(drop=True)
 
     df['dias da semana'] = df['dias da semana'].str.replace('ª','ª,').str.split(',')
@@ -63,7 +63,7 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
         '4ª': 'QUARTA',
         '5ª': 'QUINTA',
         '6ª': 'SEXTA',
-        'Saturday': 'SÁBADO'
+        'SATURDAY': 'SÁBADO'
     }
 
     df['dias da semana'] = df['dias da semana'].replace(substituicoes, regex=True)
