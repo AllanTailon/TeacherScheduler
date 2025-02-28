@@ -205,16 +205,19 @@ class TeacherScheduler:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_class_per_teacher_constraints(self):
-        # Restrição: Quantidade media de aulas por professor
-        min_classes_per_teacher = self.df_class['nome grupo'].nunique() // self.df_teach['TEACHER'].nunique()
-        if self.df_class['nome grupo'].nunique() % self.df_teach['TEACHER'].nunique() == 0:
-            max_classes_per_teacher = min_classes_per_teacher + 15
-        else:
-            max_classes_per_teacher = min_classes_per_teacher + 20
-
+        # Restrição: Quantidade média de aulas por professor
         for i in self.df_teach['TEACHER'].unique():
-            self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) <= max_classes_per_teacher)
-            #self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) >= 0)
+            # Restrição para limitar o número total de aulas que o professor pode dar
+            max_aulas_professor = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] + 3
+            min_aulas_professor = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 3
+            self.model.Add(
+                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0]
+                    for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
+            )
+            self.model.Add(
+                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0]
+                    for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
+            )
 
 
     def add_estagio_constraints(self):
