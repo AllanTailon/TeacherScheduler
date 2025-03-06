@@ -209,14 +209,14 @@ class TeacherScheduler:
         for i in self.df_teach['TEACHER'].unique():
             # Restrição para limitar o número total de aulas que o professor pode dar
             max_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] + 3).astype(int)
-            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 3).astype(int)
+            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 9).astype(int)
             self.model.Add(
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
                     for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
             )
             self.model.Add(
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
-                    for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
+                    for g in self.df_class['nome grupo'].unique()) >= 0
             )
 
 
