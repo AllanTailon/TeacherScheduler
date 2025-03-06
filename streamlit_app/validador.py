@@ -148,7 +148,7 @@ class validador:
             if i in self.df_teach['TEACHER'].unique():
                 mod = self.df_class[self.df_class['teacher']==i]['modalidade'].unique()
                 for m in mod:
-                    if m != 'Inglês':
+                    if m != 'Inglês' and m in self.df_teach.columns:
                         if self.df_teach[self.df_teach['TEACHER']==i][m].values[0] == 0:
                             message = f'Professor {i} nao pode dar aula na modalidade: {m}'
                             st.write(message)
