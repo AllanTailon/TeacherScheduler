@@ -14,6 +14,7 @@ class validador:
 
         self.check_existent_teacher()
         self.check_existent_hour()
+        self.check_duplicated_class()
         self.check_allowed_time()
         self.check_multiple_classes()
         self.check_impossible_time()
@@ -44,6 +45,19 @@ class validador:
         turmas_diff = self.df_class[self.df_class['horario'].isin(diff)]['nome grupo'].unique()
         if diff:
             message = f'Horário nao encontrado na tabela de professores: {diff} para as turmas: {turmas_diff}'
+            st.write(message)
+    
+    def check_duplicated_class(self):
+        """
+        Check if there are duplicated classes
+        """
+        turmas_unicas = self.df_class.drop_duplicates(subset=['nome grupo','unidade'])
+
+        duplicado_1 = turmas_unicas[turmas_unicas.duplicated(subset=['nome grupo'])]['nome grupo'].to_list()
+        duplicado_2 = self.df_class[self.df_class.duplicated(subset=['nome grupo','horario','dias da semana'])]['nome grupo'].to_list()
+        duplicado = set(duplicado_1 + duplicado_2)
+        if duplicado:
+            message = f'Turmas duplicadas: {duplicado}'
             st.write(message)
             
 

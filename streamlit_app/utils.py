@@ -49,7 +49,7 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
 
     df['intenviso'] = np.where(df['n aulas']>=10,1,0)
 
-    df['dias da semana'] = df['dias da semana'].str.replace('●',',').str.replace(' ','').str.replace('DOUBLE',',').str.replace('SINGLE','').str.replace('-Triple','').str.split(',')
+    df['dias da semana'] = df['dias da semana'].str.replace('●',',').str.replace(' ','').str.replace('-','').str.replace('DOUBLE',',').str.replace('SINGLE','').str.replace('TRIPLE','').str.split(',')
     df = df.explode('dias da semana').reset_index(drop=True)
 
     df['dias da semana'] = df['dias da semana'].str.replace('ª','ª,').str.split(',')
@@ -63,7 +63,7 @@ def clean_data(df: pd.DataFrame)-> pd.DataFrame:
         '4ª': 'QUARTA',
         '5ª': 'QUINTA',
         '6ª': 'SEXTA',
-        'Saturday': 'SÁBADO'
+        'SATURDAY': 'SÁBADO'
     }
 
     df['dias da semana'] = df['dias da semana'].replace(substituicoes, regex=True)
@@ -82,6 +82,7 @@ def base_selection(df: pd.DataFrame) -> tuple:
 
     aulas = aulas_tratadas.copy()
     # tratando os dados para colocar cada linha uma aula
+    aulas['dias da semana'] = aulas['dias da semana'].str.upper()
     aulas['dias da semana'] = aulas['dias da semana'].str.replace('EVERYDAY','2ª ● 3ª ● 4ª ● 5ª ● 6ª')
     aulas['stage'] = aulas['stage'].apply(lambda x: f'ESTAGIO_{x}' if isinstance(x, int) else x)
     aulas['ultimo_professor'] = aulas['ultimo_professor'].astype(str)
@@ -89,9 +90,9 @@ def base_selection(df: pd.DataFrame) -> tuple:
 
 
     # separando as aulas que são triplas, duplas e o resto
-    tri = aulas.loc[aulas['dias da semana'] == 'Saturday - Triple']
+    tri = aulas.loc[aulas['dias da semana'].str.contains('TRIPLE')]
     doub = aulas.loc[aulas['dias da semana'].str.contains('DOUBLE')]
-    aulas_simples = aulas[~aulas['dias da semana'].str.contains('DOUBLE|Saturday - Triple')].copy()
+    aulas_simples = aulas[~aulas['dias da semana'].str.contains('DOUBLE|TRIPLE')].copy()
 
     # tratando a colunas horario
     aulas_simples['horario'] = pd.to_datetime(aulas_simples['horario'],format='%H:%M:%S').dt.strftime('%H:%M:%S')
