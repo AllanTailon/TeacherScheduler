@@ -214,10 +214,10 @@ class TeacherScheduler:
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
                     for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
             )
-            #self.model.Add(
-            #    sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
-            #        for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
-            #)
+            self.model.Add(
+                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
+                    for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
+            )
 
 
     def add_estagio_constraints(self):
