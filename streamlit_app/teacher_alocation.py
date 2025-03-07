@@ -308,13 +308,13 @@ class TeacherScheduler:
 
         # Tentar buscar todas as combinações possíveis
         if seed == None :
-            solver.parameters.random_seed = random.randint(1, 100000)
+            solver.parameters.random_seed = random.randint(1, 10000)
         else:
             solver.parameters.random_seed = seed
         print(solver.parameters.random_seed)
         # Permitir busca aleatória
         solver.parameters.search_branching = cp_model.AUTOMATIC_SEARCH  # Pode testar cp_model.RANDOM_SEARCH também
-        solver.parameters.max_time_in_seconds = 90
+        solver.parameters.max_time_in_seconds = 60
         solver.parameters.enumerate_all_solutions = False
         status = solver.Solve(self.model)   
         
