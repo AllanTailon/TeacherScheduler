@@ -209,28 +209,32 @@ class TeacherScheduler:
         for i in self.df_teach['TEACHER'].unique():
             # Restrição para limitar o número total de aulas que o professor pode dar
             max_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] + 3).astype(int)
-            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 9).astype(int)
+            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 4).astype(int)
             self.model.Add(
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
                     for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
             )
+            self.model.Add(
+                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
+                    for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
+            )
 
-            excesso_vars = {}
+            #excesso_vars = {}
 
-            for i in self.df_teach['TEACHER'].unique():
-                aulas_alocadas = sum(
-                    self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
-                    for g in self.df_class['nome grupo'].unique()
-                )
+            #for i in self.df_teach['TEACHER'].unique():
+            #    aulas_alocadas = sum(
+            #        self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
+            #        for g in self.df_class['nome grupo'].unique()
+            #    )
 
                 # Variável que mede a diferença entre o mínimo esperado e o real (caso seja menor que o mínimo)
-                excesso_vars[i] = self.model.NewIntVar(0, max_aulas_professor, f'deficit_{i}')
+            #    excesso_vars[i] = self.model.NewIntVar(0, max_aulas_professor, f'deficit_{i}')
                 
                 # O déficit será a diferença entre o mínimo e as aulas alocadas, se for menor que o mínimo
-                self.model.Add(excesso_vars[i] >= max_aulas_professor - aulas_alocadas)
+            #    self.model.Add(excesso_vars[i] >= max_aulas_professor - aulas_alocadas)
 
             # Função objetivo: Minimizar o total de aulas abaixo do mínimo
-            self.model.Minimize(sum(excesso_vars[i] for i in self.df_teach['TEACHER'].unique()))
+           # self.model.Minimize(sum(excesso_vars[i] for i in self.df_teach['TEACHER'].unique()))
 
 
     def add_estagio_constraints(self):
