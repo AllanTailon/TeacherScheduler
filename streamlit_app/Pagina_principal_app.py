@@ -165,7 +165,6 @@ elif authentication_status:
             st.warning("Por favor, faça o upload do arquivo da Rota primeiro.")
 
 
-
     # Página de envio de email
     elif st.session_state.selected_page == "📧 Enviar Rota":
         st.header("📧 Enviar Rota por e-mail")
@@ -218,15 +217,6 @@ elif authentication_status:
                 if os.path.exists(LOG_FILE):
                     os.remove(LOG_FILE)
                 st.rerun()
-
-
-
-    # Terceira Página MANUTENÇÃO
-    elif st.session_state.selected_page == "🔄️ Substituições":
-        st.header("🔄️ Tabela de Substituições")
-
-
-
 
 
     st.sidebar.markdown("---")
