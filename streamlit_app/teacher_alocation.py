@@ -314,8 +314,8 @@ class TeacherScheduler:
         print(solver.parameters.random_seed)
         # Permitir busca aleatória
         solver.parameters.search_branching = cp_model.AUTOMATIC_SEARCH  # Pode testar cp_model.RANDOM_SEARCH também
-        
-        solver.parameters.enumerate_all_solutions = True
+        solver.parameters.max_time_in_seconds = 90
+        solver.parameters.enumerate_all_solutions = False
         status = solver.Solve(self.model)   
         
 
