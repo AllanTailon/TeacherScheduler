@@ -195,7 +195,7 @@ class validador:
         """
         Verifica se as aulas seguidas são de uma mesma unidade ou se é EAD.
         """
-        limite_minutos = 90
+        limite_minutos = 300
 
         for professor in self.teacher_alocated:
             for diasemana in self.df_class[self.df_class['teacher'] == professor]['dias da semana'].unique():
@@ -228,5 +228,6 @@ class validador:
 
                         if unidade1 != unidade2 and 0 < diff_minutos <= limite_minutos:
                             message = f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo."
-                            st.write(message)
+                            #st.write(message)
+                            print(message)
 

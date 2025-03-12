@@ -67,9 +67,10 @@ class TeacherScheduler:
     def schedule_teachers(self,seed=None):
 
         self.create_variables()
-        self.add_teacher_pre_alocation()
+        #self.add_teacher_pre_alocation()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
+        self.add_impossible_group_constraints()
         self.add_consecutive_group_constraints()
         self.add_consectives_teacher_constrains()
         self.add_modalidades_constraints()
@@ -119,40 +120,24 @@ class TeacherScheduler:
                 for i in self.df_teach['TEACHER'].unique():
                     self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_no_mesmo_horario) <= 1)
 
-    def add_consecutive_group_constraints(self):
-        # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
+    def add_impossible_group_constraints(self):
+        # Restrição: Não alocar o mesmo professor em grupos com intervalo menor que 50 minutos
 
-        for x in self.df_class.loc[self.df_class['status']=='PRESENCIAL']['dias da semana'].unique():
+        for x in self.df_class['dias da semana'].unique():
             for j in self.df_class['nome grupo'].unique():
-                if self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x) & (self.df_class['status']=='PRESENCIAL'), 'horario'].empty:
+                if self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'horario'].empty:
                     continue
-                horario_da_turma, unidade_da_turma = self.df_class.loc[
-                    (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x) & (self.df_class['status']=='PRESENCIAL'),
-                    ['horario_tratado', 'unidade']
+                horario_da_turma = self.df_class.loc[
+                    (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x),
+                    'horario_tratado'
                 ].values[0]
 
-                proximos_horarios = [
-                    (horario_da_turma + pd.Timedelta(minutes=60)).strftime('%H:%M:%S'),
-                    (horario_da_turma + pd.Timedelta(minutes=70)).strftime('%H:%M:%S'),
-                    (horario_da_turma + pd.Timedelta(minutes=80)).strftime('%H:%M:%S'),
-                    (horario_da_turma + pd.Timedelta(minutes=90)).strftime('%H:%M:%S')
-                    ]
-                
                 list_minutes = [10,20,30,40,50]
+
                 horarios_impossiveis = []
+
                 for minutes in list_minutes:
                     horarios_impossiveis.append((horario_da_turma + pd.Timedelta(minutes=minutes)).strftime('%H:%M:%S'))
-
-                grupos_seguidos = self.df_class.loc[
-                    (self.df_class['dias da semana'] == x) & 
-                    (self.df_class['horario'].isin(proximos_horarios)) & 
-                    (self.df_class['unidade'] != unidade_da_turma) & 
-                    (self.df_class['status'] == 'PRESENCIAL'), 
-                    'nome grupo'
-                ].unique()
-
-                grupos_seguidos = list(grupos_seguidos)
-                grupos_seguidos.append(j)
 
                 grupos_impossivel = self.df_class.loc[
                     (self.df_class['dias da semana'] == x) &
@@ -166,6 +151,11 @@ class TeacherScheduler:
                 if len(grupos_impossivel) > 1:
                     for i in self.df_teach['TEACHER'].unique():
                         self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_impossivel) <= 1)
+
+    def add_consecutive_group_constraints(self):
+        # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
+        for i in self.df_class[self.df_class['status']=='PRESENCIAL']:
+            
 
                 if len(grupos_seguidos) > 1:
                     for i in self.df_teach['TEACHER'].unique():
