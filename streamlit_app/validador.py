@@ -22,7 +22,7 @@ class validador:
         self.check_teach_status()
         self.check_days_of_week()
         self.check_stage()
-        self.check_sequence_classes()
+        #self.check_sequence_classes()
 
     def check_existent_teacher(self):
         """
@@ -191,7 +191,7 @@ class validador:
                         message = f'Professor {i} nao pode dar aula no estagio: {s}'
                         st.write(message)
     
-    def check_sequence_classes(self):
+    def check_sequence_classes(self): #editar essa função para o novo tipo de codigo
         """
         Verifica se as aulas seguidas são de uma mesma unidade ou se é EAD.
         """
