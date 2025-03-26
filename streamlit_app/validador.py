@@ -22,7 +22,7 @@ class validador:
         self.check_teach_status()
         self.check_days_of_week()
         self.check_stage()
-        self.check_sequence_classes()
+        #self.check_sequence_classes()
 
     def check_existent_teacher(self):
         """
@@ -191,11 +191,11 @@ class validador:
                         message = f'Professor {i} nao pode dar aula no estagio: {s}'
                         st.write(message)
     
-    def check_sequence_classes(self):
+    def check_sequence_classes(self): #editar essa função para o novo tipo de codigo
         """
         Verifica se as aulas seguidas são de uma mesma unidade ou se é EAD.
         """
-        limite_minutos = 90
+        limite_minutos = 300
 
         for professor in self.teacher_alocated:
             for diasemana in self.df_class[self.df_class['teacher'] == professor]['dias da semana'].unique():
@@ -229,4 +229,5 @@ class validador:
                         if unidade1 != unidade2 and 0 < diff_minutos <= limite_minutos:
                             message = f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo."
                             st.write(message)
+                            #print(message)
 
