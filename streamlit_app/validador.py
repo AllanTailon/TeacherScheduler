@@ -228,6 +228,6 @@ class validador:
 
                         if unidade1 != unidade2 and 0 < diff_minutos <= limite_minutos:
                             message = f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo."
-                            #st.write(message)
-                            print(message)
+                            st.write(message)
+                            #print(message)
 
