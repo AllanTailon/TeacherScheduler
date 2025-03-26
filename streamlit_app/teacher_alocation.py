@@ -67,7 +67,7 @@ class TeacherScheduler:
     def schedule_teachers(self,seed=None):
 
         self.create_variables()
-        #self.add_teacher_pre_alocation()
+        self.add_teacher_pre_alocation()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
         self.add_impossible_group_constraints()
@@ -154,12 +154,41 @@ class TeacherScheduler:
 
     def add_consecutive_group_constraints(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
-        for i in self.df_class[self.df_class['status']=='PRESENCIAL']:
-            
+        pares_total = set()
+        for j in self.df_class.loc[self.df_class['status'] == 'PRESENCIAL', 'nome grupo'].unique():
+            turmas_turnos_diferentes = set()
+            for x in self.df_class.loc[self.df_class['status'] == 'PRESENCIAL', 'dias da semana'].unique():
+                
+                filtro = (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x)
+                
+                if self.df_class.loc[filtro, 'unidade'].empty:
+                    continue
+                
+                unidade, horario = self.df_class.loc[filtro, ['unidade', 'horario']].values[0]
+                
+                if horario <= '12:00:00':
+                    turmas_turnos_oposto = self.df_class.loc[
+                        (self.df_class['dias da semana'] == x) &
+                        (self.df_class['horario'] > '12:00:00') &
+                        (self.df_class['status'] == 'PRESENCIAL') &
+                        (self.df_class['unidade'] != unidade),
+                        'nome grupo'
+                    ].to_list()
+                else:
+                    turmas_turnos_oposto = self.df_class.loc[
+                        (self.df_class['dias da semana'] == x) &
+                        (self.df_class['horario'] <= '12:00:00') &
+                        (self.df_class['status'] == 'PRESENCIAL') &
+                        (self.df_class['unidade'] != unidade),
+                        'nome grupo'
+                    ].to_list()
+                turmas_turnos_diferentes.update(turmas_turnos_oposto)
+            pares_total.update(tuple(sorted([j, t])) for t in turmas_turnos_diferentes)
 
-                if len(grupos_seguidos) > 1:
-                    for i in self.df_teach['TEACHER'].unique():
-                        self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_seguidos) <= 1)
+            for i in self.df_teach['TEACHER'].unique():
+                for t in pares_total:
+                    self.model.Add(self.alocacoes[(i, t[0])] + self.alocacoes[(i, t[1])] <= 1)
+
 
     def add_consectives_teacher_constrains(self):
         # Restrição: Não alocar o mesmo professor em grupos consecutivos
