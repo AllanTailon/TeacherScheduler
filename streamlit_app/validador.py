@@ -22,7 +22,8 @@ class validador:
         self.check_teach_status()
         self.check_days_of_week()
         self.check_stage()
-        #self.check_sequence_classes()
+        self.check_sequence_classes()
+        self.validator_min_classes()
 
     def check_existent_teacher(self):
         """
@@ -193,41 +194,83 @@ class validador:
     
     def check_sequence_classes(self): #editar essa função para o novo tipo de codigo
         """
-        Verifica se as aulas seguidas são de uma mesma unidade ou se é EAD.
+        Verifica se as aulas seguidas são de uma mesma unidade, separando em dois períodos:
+        -> Antes do meio-dia
+        -> Depois do meio-dia
         """
-        limite_minutos = 300
+        meio_dia = pd.to_datetime('12:00').time()
 
         for professor in self.teacher_alocated:
             for diasemana in self.df_class[self.df_class['teacher'] == professor]['dias da semana'].unique():
-                # Filtra as aulas do professor naquele dia
-                df_prof = self.df_class[(self.df_class['teacher'] == professor) & 
-                                        (self.df_class['dias da semana'] == diasemana) &
-                                        (self.df_class['status']=='PRESENCIAL')]
+                # Filtra as aulas do professor naquele dia (presenciais)
+                df_prof = self.df_class[
+                    (self.df_class['teacher'] == professor) &
+                    (self.df_class['dias da semana'] == diasemana) &
+                    (self.df_class['status'] == 'PRESENCIAL')
+                ].sort_values(by='horario_tratado')  # Ordena pelo horário
 
                 # Se houver menos de 2 aulas, não há comparação a fazer
                 if len(df_prof) < 2:
                     continue
 
-                # Ordena pelo horário para facilitar a análise
-                df_prof = df_prof.sort_values(by='horario_tratado')
+                df_manha = df_prof[df_prof['horario_tratado'].dt.time <= meio_dia]
+                df_tarde = df_prof[df_prof['horario_tratado'].dt.time > meio_dia]
 
-                # Converte horário para datetime
+                if len(df_tarde) < 2 and len(df_manha) < 2:
+                    continue
 
-                # Percorre todas as combinações de aulas para verificar conflitos
-                for i in range(len(df_prof)):
-                    for j in range(i + 1, len(df_prof)):
-                        horario1 = df_prof.iloc[i]['horario_tratado']
-                        horario2 = df_prof.iloc[j]['horario_tratado']
-                        unidade1 = df_prof.iloc[i]['unidade']
-                        unidade2 = df_prof.iloc[j]['unidade']
-                        turma1 = df_prof.iloc[i]['nome grupo']
-                        turma2 = df_prof.iloc[j]['nome grupo']
+                # Verifica se tem mais de uma unidade no período
+                unidades_manha = df_manha['unidade'].unique()
+                unidades_tarde = df_tarde['unidade'].unique()
+                if len(unidades_manha) > 1:
+                    turmas = df_manha['nome grupo'].tolist()
+                    message = (
+                        f"Conflito Manhã: Professor {professor} nos dias {diasemana}. "
+                        f"tem aulas em unidades diferentes {unidades_manha.tolist()}. "
+                        f"Turmas: {turmas}"
+                        )
+                    st.write(message)
 
-                        # Verifica se são unidades distintas e a diferença de tempo
-                        diff_minutos = (horario2 - horario1).total_seconds() / 60  # Converte para minutos
+                elif len(unidades_tarde) > 1:
+                    turmas = df_tarde['nome grupo'].tolist()
+                    message = (
+                        f"Conflito Manhã: Professor {professor} nos dias {diasemana}. "
+                        f"tem aulas em unidades diferentes {unidades_tarde.tolist()}. "
+                        f"Turmas: {turmas}"
+                        )
+                    st.write(message)
 
-                        if unidade1 != unidade2 and 0 < diff_minutos <= limite_minutos:
-                            message = f"Conflito: Professor {professor} no dia {diasemana} possui turmas:{[turma1,turma2]} em unidades distintas com diferença pequena de tempo."
-                            st.write(message)
-                            #print(message)
 
+    def validator_min_classes(self):
+        """
+        Verifica APENAS professores abaixo do mínimo de aulas
+        Retorna:
+            - Lista de professores com deficit
+            - Mensagens de alerta formatadas
+        """
+        
+        if 'TEACHER' not in self.df_teach.columns or 'MEDIA' not in self.df_teach.columns:
+            raise ValueError("DataFrame de professores precisa das colunas 'TEACHER' e 'MEDIA'")
+        
+        if 'teacher' not in self.df_class.columns or 'n aulas' not in self.df_class.columns:
+            raise ValueError("DataFrame de aulas precisa das colunas 'teacher' e 'n aulas'")
+        
+        # Calcula carga horária por professor
+        carga_professores = self.df_class.drop_duplicates(subset='nome grupo').groupby('teacher')['n aulas'].sum()
+        
+        for _, professor_info in self.df_teach.iterrows():
+            nome = professor_info['TEACHER']
+            media = professor_info['MEDIA']
+            maximo = (media + 3)  # Garante mínimo zero
+            
+            aulas_alocadas = carga_professores.get(nome, 0)
+            
+            if aulas_alocadas > maximo:
+                deficit = maximo - aulas_alocadas
+                
+                st.write(
+                    f"PROFESSOR COM CARGA MAIS QUE SUFICIENTE: {nome} | "
+                    f"Aulas alocadas: {aulas_alocadas} | "
+                    f"Máximo de: {maximo} | "
+                    f"Ultrapassou: {deficit} aula(s)"
+                )
