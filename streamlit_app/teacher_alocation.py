@@ -164,20 +164,20 @@ class TeacherScheduler:
                 if self.df_class.loc[filtro, 'unidade'].empty:
                     continue
                 
-                unidade, horario = self.df_class.loc[filtro, ['unidade', 'horario']].values[0]
+                unidade, horario = self.df_class.loc[filtro, ['unidade', 'horario_tratado']].values[0]
                 
-                if horario <= '12:00:00':
+                if horario.hour <= 12:
                     turmas_turnos_oposto = self.df_class.loc[
                         (self.df_class['dias da semana'] == x) &
-                        (self.df_class['horario'] > '12:00:00') &
+                        (self.df_class['horario_tratado'] <= pd.to_datetime('1900-01-01 12:00:00')) &
                         (self.df_class['status'] == 'PRESENCIAL') &
                         (self.df_class['unidade'] != unidade),
                         'nome grupo'
                     ].to_list()
-                else:
+                elif horario.hour > 12:
                     turmas_turnos_oposto = self.df_class.loc[
                         (self.df_class['dias da semana'] == x) &
-                        (self.df_class['horario'] <= '12:00:00') &
+                        (self.df_class['horario_tratado'] > pd.to_datetime('1900-01-01 12:00:00')) &
                         (self.df_class['status'] == 'PRESENCIAL') &
                         (self.df_class['unidade'] != unidade),
                         'nome grupo'
@@ -185,9 +185,9 @@ class TeacherScheduler:
                 turmas_turnos_diferentes.update(turmas_turnos_oposto)
             pares_total.update(tuple(sorted([j, t])) for t in turmas_turnos_diferentes)
 
-            for i in self.df_teach['TEACHER'].unique():
-                for t in pares_total:
-                    self.model.Add(self.alocacoes[(i, t[0])] + self.alocacoes[(i, t[1])] <= 1)
+        for i in self.df_teach['TEACHER'].unique():
+            for t in pares_total:
+                self.model.Add(self.alocacoes[(i, t[0])] + self.alocacoes[(i, t[1])] <= 1)
 
 
     def add_consectives_teacher_constrains(self):
@@ -227,16 +227,17 @@ class TeacherScheduler:
         # Restrição: Quantidade média de aulas por professor
         for i in self.df_teach['TEACHER'].unique():
             # Restrição para limitar o número total de aulas que o professor pode dar
-            max_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] + 3).astype(int)
-            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 6).astype(int)
+            max_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] + 4).astype(int)
+            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 3).astype(int)
+
             self.model.Add(
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
                     for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
             )
-            #self.model.Add(
-            #    sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
-            #        for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
-            #)
+            self.model.Add(
+                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
+                    for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
+            )
 
             excesso_vars = {}
 
