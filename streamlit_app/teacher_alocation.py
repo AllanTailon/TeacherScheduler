@@ -61,9 +61,6 @@ class TeacherScheduler:
         self.df_class = df_class
         self.df_teach = df_teach
 
-        self.alocacoes = {}
-        self.model = cp_model.CpModel()
-
     def schedule_teachers(self,seed=None):
 
         self.create_variables()
@@ -75,7 +72,7 @@ class TeacherScheduler:
         self.add_consectives_teacher_constrains()
         self.add_modalidades_constraints()
         self.add_grupo_constraints()
-        self.add_class_per_teacher_constraints()
+        self.add_class_per_teacher_constraints_hard()
         self.add_estagio_constraints()
         self.add_online_constraints()
         self.add_time_constraints()
@@ -86,6 +83,11 @@ class TeacherScheduler:
         prof_alocados = self.solve(seed = seed)
         
         return prof_alocados
+    
+    def create_model(self):
+        # Cria o modelo de alocação
+        self.alocacoes = {}
+        self.model = cp_model.CpModel()
 
     def create_variables(self):
         # Criação das variáveis de alocação
@@ -223,12 +225,12 @@ class TeacherScheduler:
                 for g in self.df_class.loc[self.df_class['grupo'] == grp, 'nome grupo'].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
-    def add_class_per_teacher_constraints(self):
-        # Restrição: Quantidade média de aulas por professor
+    def add_class_per_teacher_constraints_hard(self):
+        # Restrição: Professores que não podem dar aulas em mais de 3 grupos ou menos de 3 aulas baseado na media (retrição alta)
         for i in self.df_teach['TEACHER'].unique():
-            # Restrição para limitar o número total de aulas que o professor pode dar
-            max_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] + 4).astype(int)
-            min_aulas_professor = (self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0] - 3).astype(int)
+            media = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]
+            max_aulas_professor = (media + 3).astype(int)
+            min_aulas_professor = (media - 3).astype(int)
 
             self.model.Add(
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
@@ -239,6 +241,26 @@ class TeacherScheduler:
                     for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
             )
 
+    def add_class_per_teacher_constraints_soft(self):
+        # Restrição: Quantidade média de aulas por professor
+        for i in self.df_teach['TEACHER'].unique():
+            # Restrição para limitar o número total de aulas que o professor pode dar
+            media = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]
+            if media == 24:
+                subtrai = 3
+            elif media == 20:
+                subtrai = 2
+            elif media == 18:
+                subtrai = 1
+            else:
+                subtrai = 0
+            max_aulas_professor = (media - subtrai).astype(int)
+
+            self.model.Add(
+                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
+                    for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
+            )
+            
             excesso_vars = {}
 
             for i in self.df_teach['TEACHER'].unique():
@@ -255,7 +277,7 @@ class TeacherScheduler:
 
             # Criar um dicionário de pesos inversamente proporcionais à média dos professores
             medias_professores = self.df_teach.set_index('TEACHER')['MEDIA'].to_dict()
-            pesos_professores = {i: 1 / (medias_professores[i] + 1e-6) for i in self.df_teach['TEACHER'].unique()}
+            pesos_professores = {i: (medias_professores[i]) for i in self.df_teach['TEACHER'].unique()}
 
             # Função objetivo: Minimizar o total de aulas abaixo do mínimo, ponderado pela média dos professores
             self.model.Minimize(sum(pesos_professores[i] * excesso_vars[i] for i in self.df_teach['TEACHER'].unique()))
