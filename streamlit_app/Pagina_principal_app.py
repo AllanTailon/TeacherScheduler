@@ -1,3 +1,4 @@
+from ftplib import all_errors
 import pickle
 from pathlib import Path
 import pandas as pd
@@ -10,6 +11,9 @@ from utils import transform_classes_dateframe, transform_teacher_dataframe, tran
 from teacher_alocation import TeacherScheduler
 from validador import validador
 import json
+from schema_validator import get_schema
+import pandera as pa
+from data_validator import DataValidator
 
 st.set_page_config(
     page_title="Teacher Scheduler",
@@ -93,7 +97,10 @@ elif authentication_status:
     st.sidebar.markdown("---")
 
     if 'selected_page' not in st.session_state:
-        st.session_state.selected_page = "📅 Planejador de Rota"
+        st.session_state.selected_page = "🔍 Validador de erros"
+
+    if st.sidebar.button("🔍 Validador de erros"):
+        st.session_state.selected_page = "🔍 Validador de erros"
 
     if st.sidebar.button("📅 Planejador de rota"):
         st.session_state.selected_page = "📅 Planejador de Rota"
@@ -101,12 +108,42 @@ elif authentication_status:
     if st.sidebar.button("📧 Enviar Rota"):
         st.session_state.selected_page = "📧 Enviar Rota"
 
-    if st.sidebar.button("🔄️ Substituições"):
-        st.session_state.selected_page = "🔄️ Substituições"
+    # Primeira Página Atualizada
+    if st.session_state.selected_page == "🔍 Validador de erros":
+        st.header("🔍 Validador de erros")
 
+        def validate_data(df):
+            schema = get_schema()
+            try:
+                schema.validate(df, lazy=True)
+                return True, None
+            except pa.errors.SchemaErrors as err:
+                return False, err
 
-    # Primeira Página
-    if st.session_state.selected_page == "📅 Planejador de Rota":
+        uploaded_file = st.file_uploader("Faça o upload do arquivo da Rota", type=["xlsx"], key="rota_uploader")
+
+        if uploaded_file is not None:
+            df = pd.read_excel(uploaded_file)
+                        
+            # Validação dos dados
+            validator = DataValidator(df).validate_all()
+            
+            if not validator.errors_report:
+                st.success("✅ Todos os dados estão válidos!")
+            else:
+                st.error(f"❌ Foram encontrados os seguintes erros:")
+                
+                # Detalhes dos erros
+                for col_name, errors in validator.errors_report.items():
+                    with st.expander(f"🔍 Detalhes dos erros em '{col_name}'"):
+                        for error in errors:
+                            st.write(f"**Tipo**: {error['tipo']}")
+                            st.dataframe(error['linhas'])
+                
+                st.warning("⚠️ Corrija os erros acima e faça o upload novamente.")
+
+    # Segunda Página 
+    elif st.session_state.selected_page == "📅 Planejador de Rota":
         st.header("📅 Planejador de rota")
 
         st.subheader("Upload do arquivo da Rota")
@@ -163,7 +200,6 @@ elif authentication_status:
                     )
         else:
             st.warning("Por favor, faça o upload do arquivo da Rota primeiro.")
-
 
     # Página de envio de email
     elif st.session_state.selected_page == "📧 Enviar Rota":
