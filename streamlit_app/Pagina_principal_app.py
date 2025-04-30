@@ -143,10 +143,10 @@ elif authentication_status:
 
                         base_alocada = Ts.schedule_teachers(use_soft_constrait=0)
 
-                        if base_alocada is None:
+                        if base_alocada.shape[0] == 0:
 
                             st.error("Não foi possível gerar a alocação usando condições hard. Utilizando condição soft")
-                            st.pr
+                        
                             base_alocada = Ts.schedule_teachers(use_soft_constrait=2)
                         
 

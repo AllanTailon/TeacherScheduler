@@ -253,7 +253,6 @@ class TeacherScheduler:
         for i in self.df_teach['TEACHER'].unique():
             media = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]
             max_aulas_professor = (media).astype(int)
-            min_aulas_professor = (media - 5).astype(int)
 
             self.model.Add(
                 sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
