@@ -261,7 +261,7 @@ class validador:
         for _, professor_info in self.df_teach.iterrows():
             nome = professor_info['TEACHER']
             media = professor_info['MEDIA']
-            maximo = (media + 3)  # Garante mínimo zero
+            maximo = (media)  # Garante mínimo zero
             
             aulas_alocadas = carga_professores.get(nome, 0)
             
