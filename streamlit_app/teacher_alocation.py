@@ -279,7 +279,7 @@ class TeacherScheduler:
                     for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
             )
 
-    def add_class_per_teacher_constraints_double_weighted(self, weight_media=3, weight_repeticao=2):
+    def add_class_per_teacher_constraints_double_weighted(self, weight_media=5, weight_repeticao=2):
         teachers = self.df_teach['TEACHER'].unique()
         grupos = self.df_class['nome grupo'].unique()
 
