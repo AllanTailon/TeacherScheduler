@@ -145,9 +145,15 @@ elif authentication_status:
 
                         if base_alocada.shape[0] == 0:
 
-                            st.error("Não foi possível gerar a alocação usando condições hard. Utilizando condição soft")
+                            st.error("Não foi possível gerar a alocação usando condições altas. Utilizando condição medias.")
                         
-                            base_alocada = Ts.schedule_teachers(use_soft_constrait=2)
+                            base_alocada = Ts.schedule_teachers(use_soft_constrait=1)
+                        
+                            if base_alocada.shape[0] == 0:
+
+                                st.error("Não foi possível gerar a alocação usando condições medias. Utilizando condição baixas.")
+                                
+                                base_alocada = Ts.schedule_teachers(use_soft_constrait=2)
                         
 
                         df_results,aulas_nao_alocadas = transform_alocation_dataframe(aulas_raw,base_alocada)
