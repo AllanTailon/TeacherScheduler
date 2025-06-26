@@ -68,6 +68,7 @@ class TeacherScheduler:
         self.add_teacher_pre_alocation()
         self.add_teacher_constraints()
         self.add_schedule_constraints()
+        self.add_unidade_constraints()
         self.add_impossible_group_constraints()
         self.add_consecutive_group_constraints()
         self.add_modalidades_constraints()
@@ -132,6 +133,15 @@ class TeacherScheduler:
                 
                 for i in self.df_teach['TEACHER'].unique():
                     self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_no_mesmo_horario) <= 1)
+
+    def add_unidade_constraints(self):
+            # Restrição: Professores que não podem dar aulas em determinadas unidades
+
+            unidade_list = ['SATÉLITE', 'JARDIM', 'VICENTINA']
+            for und in unidade_list:
+                for i in self.df_teach.loc[self.df_teach[und] == 0, 'TEACHER'].to_list():
+                    for g in self.df_class.loc[self.df_class['unidade'] == und.capitalize(), 'unidade'].unique():
+                        self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_impossible_group_constraints(self):
         # Restrição: Não alocar o mesmo professor em grupos com intervalo menor que 50 minutos
