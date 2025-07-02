@@ -24,14 +24,14 @@ class validador:
         self.check_stage()
         self.check_sequence_classes()
         self.validator_min_classes()
+        self.check_unidade()
 
     def check_existent_teacher(self):
         """
         Check if there are teachers in the class that are not in the teacher table
         """
-        teachers_pre_alocado = self.df_class[((self.df_class['teacher'].notnull())&(self.df_class['teacher']!='-'))]['teacher'].unique()
         teachers = self.df_teach['TEACHER'].unique()
-        diff = set(teachers_pre_alocado) - set(teachers)
+        diff = set(self.teacher_alocated) - set(teachers)
         if diff:
             message = f'Professor nao encontrado na tabela de professores: {diff}'
             st.write(message)
@@ -274,3 +274,15 @@ class validador:
                     f"Máximo de: {maximo} | "
                     f"Ultrapassou: {deficit} aula(s)"
                 )
+    
+    def check_unidade(self):
+        """
+        Verifica se as unidades estão corretas
+        """
+        for i in self.teacher_alocated:
+            if i in self.df_teach['TEACHER'].unique():
+                unidade = self.df_class[self.df_class['teacher']==i]['unidade'].unique()
+                for uni in unidade:
+                    if self.df_teach[self.df_teach['TEACHER']==i][uni.upper()].values[0] == 0:
+                        message= f'Professor {i} nao pode dar aula na unidade: {uni}'
+                        st.write(message)
