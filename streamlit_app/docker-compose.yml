@@ -1,0 +1,13 @@
+version: "3"
+services:
+
+  streamlit-app:
+    image: the_family_alocation/web-app:latest
+    build: 
+      context: .
+      dockerfile: 
+                Dockerfile
+    container_name: web-front
+    restart: unless-stopped
+    ports:
+     - "8501:8501"
