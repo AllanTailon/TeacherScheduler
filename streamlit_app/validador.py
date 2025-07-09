@@ -24,6 +24,7 @@ class validador:
         self.check_stage()
         self.check_sequence_classes()
         self.validator_min_classes()
+        self.check_teacher_class_type()
         self.check_unidade()
 
     def check_existent_teacher(self):
@@ -285,4 +286,13 @@ class validador:
                 for uni in unidade:
                     if self.df_teach[self.df_teach['TEACHER']==i][uni.upper()].values[0] == 0:
                         message= f'Professor {i} nao pode dar aula na unidade: {uni}'
+                        st.write(message)
+    
+    def check_teacher_class_type(self):
+        for i in self.teacher_alocated:
+            if i in self.df_teach['TEACHER'].unique():
+                class_type = self.df_class[self.df_class['teacher']==i]['grupo'].unique()
+                for ct in class_type:
+                    if self.df_teach[self.df_teach['TEACHER']==i][ct].values[0] == 0:
+                        message= f'Professor {i} nao pode dar aula no tipo de aula: {ct}'
                         st.write(message)
