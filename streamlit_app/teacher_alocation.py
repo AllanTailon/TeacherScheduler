@@ -140,7 +140,7 @@ class TeacherScheduler:
             unidade_list = ['SATÉLITE', 'JARDIM', 'VICENTINA']
             for und in unidade_list:
                 for i in self.df_teach.loc[self.df_teach[und] == 0, 'TEACHER'].to_list():
-                    for g in self.df_class.loc[self.df_class['unidade'] == und.capitalize(), 'nome grupo'].unique():
+                    for g in self.df_class.loc[((self.df_class['unidade'] == und.capitalize())&(self.df_class['status']=='PRESENCIAL')), 'nome grupo'].unique():
                         self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_impossible_group_constraints(self):
