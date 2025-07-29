@@ -405,7 +405,7 @@ class TeacherScheduler:
         for g in self.df_class[self.df_class['dias da semana']!='SÁBADO']['nome grupo'].unique():
             for i in self.df_teach['TEACHER'].unique():
                 time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].to_list()
-                if self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class].sum(axis=1).values[0] == 0:
+                if (self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class]==0).any(axis=1).values[0]:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
             for i in self.df_teach['TEACHER'].unique():
@@ -475,4 +475,6 @@ class TeacherScheduler:
             print("Não foi possível encontrar uma solução ótima.")
 
         return prof_alocados
+    
+
     
