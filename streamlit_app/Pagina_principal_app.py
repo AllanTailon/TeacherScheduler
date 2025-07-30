@@ -21,7 +21,7 @@ def load_image(image_file):
     with open(image_file, "rb") as image:
         return base64.b64encode(image.read()).decode()
 
-image_path = "images/thefamilyidiomas.jpg"
+image_path = "streamlit_app/images/thefamilyidiomas.jpg"
 background_image = load_image(image_path)
 
 names = ["admin", "Luiza Bindel", "Henrique Marcondes"]
@@ -30,7 +30,7 @@ usernames = ["admin", "LuizaB", "HenriqueM"]
 cookie_name = "Teacher Scheduler"
 key = "abcdef"
 
-file_path = Path("Authenticator/hashed_pw.pkl")
+file_path = Path("streamlit_app/Authenticator/hashed_pw.pkl")
 with file_path.open("rb") as file:
     hashed_passwords = pickle.load(file)
 
