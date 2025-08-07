@@ -153,14 +153,14 @@ class TeacherScheduler:
                 horario_da_turma = self.df_class.loc[
                     (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x),
                     'horario_tratado'
-                ].values[0]
+                ].values
 
                 list_minutes = [10,20,30,40,50]
 
                 horarios_impossiveis = []
-
-                for minutes in list_minutes:
-                    horarios_impossiveis.append((horario_da_turma + pd.Timedelta(minutes=minutes)).strftime('%H:%M:%S'))
+                for horarios in horario_da_turma:
+                    for minutes in list_minutes:
+                        horarios_impossiveis.append((horarios + pd.Timedelta(minutes=minutes)).strftime('%H:%M:%S'))
 
                 grupos_impossivel = self.df_class.loc[
                     (self.df_class['dias da semana'] == x) &
