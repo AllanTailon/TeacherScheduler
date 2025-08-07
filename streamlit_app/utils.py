@@ -103,9 +103,14 @@ def transform_classes_dateframe(aulas_raw):
     aulas_simples,doub,tri=base_selection(aulas_raw)
 
     # transformando aulas duplas/triplas em 2/3 linhas
-    aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
-    aulas_triplicadas = expand_rows(tri, lambda row: replicate_row(row, times=3))
-
+    try:
+        aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
+    except Exception as e:
+        aulas_duplicadas = pd.DataFrame(columns=aulas_simples.columns)
+    try:    
+        aulas_triplicadas = expand_rows(tri, lambda row: replicate_row(row, times=3))
+    except Exception as e:
+        aulas_triplicadas = pd.DataFrame(columns=aulas_simples.columns)
     # juntando todas as linhas
     df_tratado = pd.concat([aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True)
 
