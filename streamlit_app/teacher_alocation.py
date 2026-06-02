@@ -103,23 +103,33 @@ class TeacherScheduler:
 
     def create_variables(self):
         # Criação das variáveis de alocação
+        self.teachers = self.df_teach['TEACHER'].unique()
+        self.groups = self.df_class['nome grupo'].unique()
+        self.group_rows = {
+            g: self.df_class[self.df_class['nome grupo'] == g]
+            for g in self.groups
+        }
+        self.group_lessons = {
+            g: int(self.group_rows[g]['n aulas'].iloc[0])
+            for g in self.groups
+        }
         
-        for i in self.df_teach['TEACHER'].unique():
-            for g in self.df_class['nome grupo'].unique():
+        for i in self.teachers:
+            for g in self.groups:
                 self.alocacoes[(i, g)] = self.model.NewBoolVar(f"{i}_converinglesson_{g}")
 
     def add_teacher_pre_alocation(self):
         # Restrição: Professores que já estão alocados
 
-        for i in self.df_teach['TEACHER'].unique():
+        for i in self.teachers:
             for g in self.df_class.loc[self.df_class['teacher'] == i, 'nome grupo'].unique():
                 self.model.Add(self.alocacoes[(i, g)] == 1)
 
     def add_teacher_constraints(self):
-        # Restrição: Apenas um professor por grupo
+        # Restrição: No máximo um professor por grupo
 
-        for g in self.df_class['nome grupo'].unique():
-            self.model.Add(sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique()) <= 1)
+        for g in self.groups:
+            self.model.Add(sum(self.alocacoes[(i, g)] for i in self.teachers) <= 1)
 
     def add_schedule_constraints(self):
         # Restrição: Professores não podem ser alocados em mais de um grupo no mesmo horário
@@ -131,7 +141,7 @@ class TeacherScheduler:
                     (self.df_class['dias da semana'] == d)
                 ]['nome grupo'].unique()
                 
-                for i in self.df_teach['TEACHER'].unique():
+                for i in self.teachers:
                     self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_no_mesmo_horario) <= 1)
 
     def add_unidade_constraints(self):
@@ -140,43 +150,43 @@ class TeacherScheduler:
             unidade_list = ['SATÉLITE', 'JARDIM', 'VICENTINA']
             for und in unidade_list:
                 for i in self.df_teach.loc[self.df_teach[und] == 0, 'TEACHER'].to_list():
-                    for g in self.df_class.loc[((self.df_class['unidade'] == und.capitalize())&(self.df_class['status']=='PRESENCIAL')), 'nome grupo'].unique():
+                    for g in self.df_class.loc[((self.df_class['unidade'].str.upper() == und)&(self.df_class['status']=='PRESENCIAL')), 'nome grupo'].unique():
                         self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_impossible_group_constraints(self):
         # Restrição: Não alocar o mesmo professor em grupos com intervalo menor que 50 minutos
 
         for x in self.df_class['dias da semana'].unique():
-            for j in self.df_class['nome grupo'].unique():
-                if self.df_class.loc[(self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x), 'horario'].empty:
-                    continue
-                horario_da_turma = self.df_class.loc[
-                    (self.df_class['nome grupo'] == j) & (self.df_class['dias da semana'] == x),
-                    'horario_tratado'
-                ].values
+            turmas_do_dia = (
+                self.df_class.loc[self.df_class['dias da semana'] == x, ['nome grupo', 'horario_tratado']]
+                .drop_duplicates(subset=['nome grupo', 'horario_tratado'])
+                .sort_values('horario_tratado')
+                .reset_index(drop=True)
+            )
 
-                list_minutes = [10,20,30,40,50]
+            for idx, turma_1 in turmas_do_dia.iterrows():
+                for idx_2 in range(idx + 1, len(turmas_do_dia)):
+                    turma_2 = turmas_do_dia.iloc[idx_2]
 
-                horarios_impossiveis = []
-                for horarios in horario_da_turma:
-                    for minutes in list_minutes:
-                        horarios_impossiveis.append((horarios + pd.Timedelta(minutes=minutes)).strftime('%H:%M:%S'))
+                    if turma_1['nome grupo'] == turma_2['nome grupo']:
+                        continue
 
-                grupos_impossivel = self.df_class.loc[
-                    (self.df_class['dias da semana'] == x) &
-                    (self.df_class['horario'].isin(horarios_impossiveis)),
-                    'nome grupo'
-                ].unique()
+                    diferenca_horario = turma_2['horario_tratado'] - turma_1['horario_tratado']
 
-                grupos_impossivel = list(grupos_impossivel)
-                grupos_impossivel.append(j)
+                    if diferenca_horario > pd.Timedelta(minutes=50):
+                        break
 
-                if len(grupos_impossivel) > 1:
-                    for i in self.df_teach['TEACHER'].unique():
-                        self.model.Add(sum(self.alocacoes[(i, g)] for g in grupos_impossivel) <= 1)
+                    if diferenca_horario <= pd.Timedelta(minutes=0):
+                        continue
+
+                    grupo_1 = turma_1['nome grupo']
+                    grupo_2 = turma_2['nome grupo']
+
+                    for i in self.teachers:
+                        self.model.Add(self.alocacoes[(i, grupo_1)] + self.alocacoes[(i, grupo_2)] <= 1)
 
     def add_consecutive_group_constraints(self):
-        # Restrição: Não alocar o mesmo professor em grupos consecutivos em unidades diferentes
+        # Restrição: Não alocar o mesmo professor em grupos presenciais de unidades diferentes no mesmo turno
         pares_total = set()
         for j in self.df_class.loc[self.df_class['status'] == 'PRESENCIAL', 'nome grupo'].unique():
             turmas_turnos_diferentes = set()
@@ -208,7 +218,7 @@ class TeacherScheduler:
                 turmas_turnos_diferentes.update(turmas_turnos_oposto)
             pares_total.update(tuple(sorted([j, t])) for t in turmas_turnos_diferentes)
 
-        for i in self.df_teach['TEACHER'].unique():
+        for i in self.teachers:
             for t in pares_total:
                 self.model.Add(self.alocacoes[(i, t[0])] + self.alocacoes[(i, t[1])] <= 1)
 
@@ -225,7 +235,7 @@ class TeacherScheduler:
     def add_consecutive_teacher_constraints_soft(self, penalty_weight=1):
         """
         Adiciona restrições suaves para evitar alocar o mesmo professor do grupo anterior.
-        Penaliza a repetição de professor com uma variável auxiliar no objetivo.
+        Penaliza diretamente a repetição de professor no objetivo.
         """
         penalidades = []
 
@@ -240,15 +250,7 @@ class TeacherScheduler:
                 last_teacher = grupo_info['ultimo_professor'].dropna().unique()[0]
 
                 if last_teacher in self.df_teach['TEACHER'].values:
-                    # Criar variável binária que indica se o último professor foi repetido
-                    var_penalidade = self.model.NewBoolVar(f'penalidade_repeticao_{last_teacher}_{g}')
-
-                    # Conectar essa variável à alocação do professor
-                    self.model.Add(self.alocacoes[(last_teacher, g)] == 1).OnlyEnforceIf(var_penalidade)
-                    self.model.Add(self.alocacoes[(last_teacher, g)] == 0).OnlyEnforceIf(var_penalidade.Not())
-
-                    # Adicionar penalidade ao objetivo
-                    penalidades.append(var_penalidade * penalty_weight)
+                    penalidades.append(self.alocacoes[(last_teacher, g)] * penalty_weight)
 
         # Minimizar a soma das penalidades
         self.model.Minimize(sum(penalidades))
@@ -275,48 +277,46 @@ class TeacherScheduler:
 
     def add_class_per_teacher_constraints_hard(self):
         # Restrição: Professores que não podem dar aulas em mais de 3 grupos ou menos de 3 aulas baseado na media (retrição alta)
-        for i in self.df_teach['TEACHER'].unique():
-            media = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]
-            max_aulas_professor = (media).astype(int)
-            min_aulas_professor = (media - 4).astype(int)
+        for i in self.teachers:
+            media = self.get_teacher_media(i)
+            max_aulas_professor = media
+            min_aulas_professor = max(0, media - 4)
 
-            self.model.Add(
-                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
-                    for g in self.df_class['nome grupo'].unique()) <= max_aulas_professor
-            )
-            self.model.Add(
-                sum(self.alocacoes[(i, g)] * self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0].astype(int)
-                    for g in self.df_class['nome grupo'].unique()) >= min_aulas_professor
-            )
+            carga_professor = self.teacher_load_expr(i)
+            self.model.Add(carga_professor <= max_aulas_professor)
+            self.model.Add(carga_professor >= min_aulas_professor)
+
+    def get_teacher_media(self, teacher):
+        return int(self.df_teach.loc[self.df_teach['TEACHER'] == teacher, 'MEDIA'].values[0])
+
+    def teacher_load_expr(self, teacher):
+        return sum(
+            self.alocacoes[(teacher, g)] * self.group_lessons[g]
+            for g in self.groups
+        )
 
     def add_class_per_teacher_constraints_double_weighted(self, weight_media=5, weight_repeticao=2):
-        teachers = self.df_teach['TEACHER'].unique()
-        grupos = self.df_class['nome grupo'].unique()
+        teachers = self.teachers
 
         # Variáveis auxiliares: total de aulas alocadas por professor
         aulas_alocadas = {}
         desvios = []
 
         for i in teachers:
-            media = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]
-            max_aulas_professor = int(media)
+            media = self.get_teacher_media(i)
+            max_aulas_professor = media
 
             # Criando variável auxiliar para contar total de aulas alocadas ao professor i
             aulas_alocadas[i] = self.model.NewIntVar(0, max_aulas_professor, f"aulas_alocadas_{i}")
             desvio = self.model.NewIntVar(0, max_aulas_professor, f"desvio_{i}")
 
-            self.model.Add(
-                aulas_alocadas[i] == sum(
-                    self.alocacoes[(i, g)] * int(self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0])
-                    for g in grupos
-                )
-            )
+            self.model.Add(aulas_alocadas[i] == self.teacher_load_expr(i))
 
             self.model.Add(desvio >= media - aulas_alocadas[i])
             self.model.Add(aulas_alocadas[i] <= max_aulas_professor)
 
             # Peso para desvio da média
-            desvios.append(desvio * int(media / 8) * weight_media)
+            desvios.append(desvio * max(1, int(media / 8)) * weight_media)
 
         # -----------------------------
         # Penalidade por repetição de professor
@@ -333,40 +333,29 @@ class TeacherScheduler:
                 last_teacher = grupo_info['ultimo_professor'].dropna().unique()[0]
 
                 if last_teacher in self.df_teach['TEACHER'].values:
-                    var_penalidade = self.model.NewBoolVar(f'penalidade_repeticao_{last_teacher}_{g}')
-
-                    self.model.Add(self.alocacoes[(last_teacher, g)] == 1).OnlyEnforceIf(var_penalidade)
-                    self.model.Add(self.alocacoes[(last_teacher, g)] == 0).OnlyEnforceIf(var_penalidade.Not())
-
-                    penalidades.append(var_penalidade * weight_repeticao)
+                    penalidades.append(self.alocacoes[(last_teacher, g)] * weight_repeticao)
 
         # -----------------------------
         # Minimiza a soma ponderada de desvios + penalidades por repetição
         self.model.Minimize(sum(desvios) + sum(penalidades))
 
     def add_class_per_teacher_constraints_weighted(self):
-        teachers = self.df_teach['TEACHER'].unique()
-        grupos = self.df_class['nome grupo'].unique()
+        teachers = self.teachers
 
         # Variáveis auxiliares: total de aulas alocadas por professor
         aulas_alocadas = {}
         pesos_desvios = {}
 
         for i in teachers:
-            media = self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]
-            max_aulas_professor = int(media)
+            media = self.get_teacher_media(i)
+            max_aulas_professor = media
 
             # Criando variável auxiliar para contar total de aulas alocadas ao professor i
             aulas_alocadas[i] = self.model.NewIntVar(0, max_aulas_professor, f"aulas_alocadas_{i}")
             desvio = self.model.NewIntVar(0, max_aulas_professor, f"desvio_{i}")
 
             # Soma de aulas atribuídas ao professor i
-            self.model.Add(
-                aulas_alocadas[i] == sum(
-                    self.alocacoes[(i, g)] * int(self.df_class.loc[self.df_class['nome grupo'] == g, 'n aulas'].values[0])
-                    for g in grupos
-                )
-            )
+            self.model.Add(aulas_alocadas[i] == self.teacher_load_expr(i))
             self.model.Add(desvio >= media - aulas_alocadas[i])
 
             # Restrição de máximo
@@ -378,7 +367,7 @@ class TeacherScheduler:
         # Agora maximizamos a soma ponderada de aulas alocadas com peso baseado na média
         self.model.Minimize(
             sum(
-                pesos_desvios[i] * int(self.df_teach.loc[self.df_teach['TEACHER'] == i, 'MEDIA'].values[0]/8)
+                pesos_desvios[i] * max(1, int(self.get_teacher_media(i) / 8))
                 for i in teachers
             )
         )
@@ -402,21 +391,26 @@ class TeacherScheduler:
     def add_time_constraints(self):
         # Restrição: Professores não podem dar aulas em horários que não estão disponíveis
 
+        self.add_hour_availability_constraints()
+        self.add_day_availability_constraints()
+
+    def add_hour_availability_constraints(self):
         for g in self.df_class[self.df_class['dias da semana']!='SÁBADO']['nome grupo'].unique():
-            for i in self.df_teach['TEACHER'].unique():
-                time_class = self.df_class.loc[self.df_class['nome grupo'] == g, 'horario'].to_list()
-                if (self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class]==0).any(axis=1).values[0]:
+            for i in self.teachers:
+                time_class = self.group_rows[g]['horario'].to_list()
+                if (self.df_teach.loc[self.df_teach['TEACHER'] == i, time_class] == 0).any(axis=1).values[0]:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
-            for i in self.df_teach['TEACHER'].unique():
-                for x in self.df_class['dias da semana'].unique():
-                    turmas_do_dia = self.df_class[self.df_class['dias da semana'] == x]['nome grupo'].unique()
-                    disponibilidade = self.df_teach[self.df_teach['TEACHER'] == i][x].values[0]
+    def add_day_availability_constraints(self):
+        for i in self.teachers:
+            for x in self.df_class['dias da semana'].unique():
+                turmas_do_dia = self.df_class[self.df_class['dias da semana'] == x]['nome grupo'].unique()
+                disponibilidade = self.df_teach[self.df_teach['TEACHER'] == i][x].values[0]
 
-                    if disponibilidade == 0:
-                        # Se o professor não pode dar aula no dia, todas as alocações devem ser 0
-                        for g in turmas_do_dia:
-                            self.model.Add(self.alocacoes[(i, g)] == 0)
+                if disponibilidade == 0:
+                    # Se o professor não pode dar aula no dia, todas as alocações devem ser 0
+                    for g in turmas_do_dia:
+                        self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_intensive_constraints(self):
         # Restrição: Professores que não podem dar aulas em intensivos
@@ -431,19 +425,19 @@ class TeacherScheduler:
         for g in self.df_class[self.df_class['restricoes_professor'].notnull()]['nome grupo'].unique():
             restricoes_prof = self.df_class[self.df_class['nome grupo']==g]['restricoes_professor'].unique()[0].split(',')
             for i in restricoes_prof:
-                if i in self.df_teach['TEACHER'].unique():
+                if i in self.teachers:
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
     
     def add_all_class_fill_constraints(self):
         # Restrição: Garantir que todas as aulas sejam preenchidas
-        for g in self.df_class['nome grupo'].unique():
-            self.model.Add(sum(self.alocacoes[(i, g)] for i in self.df_teach['TEACHER'].unique()) == 1)
+        for g in self.groups:
+            self.model.Add(sum(self.alocacoes[(i, g)] for i in self.teachers) == 1)
     
     def teacher_at_least_1_class_constraints(self):
-        # Restrição: Garantir que todas as aulas sejam preenchidas
-        for i in self.df_teach['TEACHER'].unique():
-            self.model.Add(sum(self.alocacoes[(i, g)] for g in self.df_class['nome grupo'].unique()) >= 1)
+        # Restrição: Garantir que todos os professores recebam ao menos uma turma
+        for i in self.teachers:
+            self.model.Add(sum(self.alocacoes[(i, g)] for g in self.groups) >= 1)
 
     def solve(self,seed):
         # Resolver o modelo e alocar os Professores
@@ -466,8 +460,8 @@ class TeacherScheduler:
 
         if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
             print(status)
-            for g in self.df_class['nome grupo'].unique():
-                for i in self.df_teach['TEACHER'].unique():
+            for g in self.groups:
+                for i in self.teachers:
                     if solver.Value(self.alocacoes[(i, g)]):
                         aloca = pd.DataFrame({'professores_alocados': [i], 'nome grupo': [g]})
                         prof_alocados = pd.concat([prof_alocados, aloca], ignore_index=True)
