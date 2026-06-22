@@ -8,7 +8,11 @@ class validador:
 
         self.df_class = df_class
         self.df_teach = df_teach
-        self.teacher_alocated = self.df_class[((self.df_class['teacher']!='-')&(self.df_class['teacher'].notnull()))]['teacher'].unique()
+        self.teacher_alocated = self.df_class[
+            (self.df_class['teacher'].notnull()) &
+            (self.df_class['teacher'].astype(str).str.strip() != '-') &
+            (self.df_class['teacher'].astype(str).str.strip().str.lower() != 'nan')
+        ]['teacher'].unique()
 
     def check_problem(self):
 
@@ -24,6 +28,7 @@ class validador:
         self.check_stage()
         self.check_sequence_classes()
         self.validator_min_classes()
+        self.check_restrictions_teacher()
         self.check_teacher_class_type()
         self.check_unidade()
 
@@ -74,8 +79,14 @@ class validador:
             horarios = self.df_class[self.df_class['teacher']==professor]['horario'].unique()
             dia_semana = self.df_class[self.df_class['teacher']==professor]['dias da semana'].unique()
 
-            prof_horarios = self.df_teach[self.df_teach['TEACHER']==professor][horarios]
-            prof_diasemana = self.df_teach[self.df_teach['TEACHER']==professor][dia_semana]
+            if professor not in self.df_teach['TEACHER'].values:
+                continue
+
+            horarios_existentes = [h for h in horarios if h in self.df_teach.columns]
+            dias_existentes = [d for d in dia_semana if d in self.df_teach.columns]
+
+            prof_horarios = self.df_teach[self.df_teach['TEACHER']==professor][horarios_existentes]
+            prof_diasemana = self.df_teach[self.df_teach['TEACHER']==professor][dias_existentes]
 
             erros_horario = prof_horarios.columns[(prof_horarios == 0).any()].to_list()
             erros_diasemana = prof_diasemana.columns[(prof_diasemana == 0).any()].to_list()
@@ -94,25 +105,41 @@ class validador:
     
     def check_impossible_time(self):
         """
-        Check if are classes in the same hour
+        Check if pre-allocated classes have start times within 50 minutes.
         """
         for professor in self.teacher_alocated:
             for diasemana in self.df_class[self.df_class['teacher']==professor]['dias da semana'].unique():
-                horarios = pd.to_datetime(self.df_class[(self.df_class['teacher'] == professor) & 
-                                                 (self.df_class['dias da semana'] == diasemana)]['horario']
-                                  .unique(), format="%H:%M:%S")
-                if len(horarios) < 2:
+                aulas_professor = self.df_class[
+                    (self.df_class['teacher'] == professor) &
+                    (self.df_class['dias da semana'] == diasemana)
+                ][['nome grupo', 'horario']].drop_duplicates().copy()
+
+                if len(aulas_professor) < 2:
                     continue
                 
-                horarios = np.sort(horarios)
-                # Calcula a diferença entre o elemo [a] com [a+1]
-                diffs = np.diff(horarios)
+                aulas_professor['horario_tratado'] = pd.to_datetime(aulas_professor['horario'], format="%H:%M:%S")
+                aulas_professor = aulas_professor.sort_values('horario_tratado').reset_index(drop=True)
 
-                # Verifica se alguma diferença é menor que 1 hora
-                exists_diff_less_than_1h = np.any((diffs < pd.Timedelta(minutes=60)))
+                conflitos = []
+                for idx, aula_1 in aulas_professor.iterrows():
+                    for idx_2 in range(idx + 1, len(aulas_professor)):
+                        aula_2 = aulas_professor.iloc[idx_2]
 
-                if exists_diff_less_than_1h:
-                    message = f"Professor {professor} tem turmas com diferença menor que 1 hora no dia da semana: {diasemana}"
+                        if aula_1['nome grupo'] == aula_2['nome grupo']:
+                            continue
+
+                        diff = aula_2['horario_tratado'] - aula_1['horario_tratado']
+                        if diff > pd.Timedelta(minutes=50):
+                            break
+
+                        if diff > pd.Timedelta(minutes=0):
+                            conflitos.append((aula_1['nome grupo'], aula_2['nome grupo']))
+
+                if conflitos:
+                    message = (
+                        f"Professor {professor} tem turmas com intervalo de até 50 minutos "
+                        f"no dia da semana {diasemana}: {conflitos}"
+                    )
                     st.write(message)
 
     def check_multiple_classes(self):
@@ -163,7 +190,7 @@ class validador:
             if i in self.df_teach['TEACHER'].unique():
                 status = self.df_class[self.df_class['teacher']==i]['status'].unique()
                 for s in status:
-                    if self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
+                    if s in self.df_teach.columns and self.df_teach[self.df_teach['TEACHER']==i][s].values[0] == 0:
                         message= f'Professor {i} nao pode dar aula no status: {s}'
                         st.write(message)
     
@@ -244,10 +271,7 @@ class validador:
 
     def validator_min_classes(self):
         """
-        Verifica APENAS professores abaixo do mínimo de aulas
-        Retorna:
-            - Lista de professores com deficit
-            - Mensagens de alerta formatadas
+        Verifica se as turmas já pré-alocadas ultrapassam a MEDIA do professor.
         """
         
         if 'TEACHER' not in self.df_teach.columns or 'MEDIA' not in self.df_teach.columns:
@@ -256,8 +280,12 @@ class validador:
         if 'teacher' not in self.df_class.columns or 'n aulas' not in self.df_class.columns:
             raise ValueError("DataFrame de aulas precisa das colunas 'teacher' e 'n aulas'")
         
-        # Calcula carga horária por professor
-        carga_professores = self.df_class.drop_duplicates(subset='nome grupo').groupby('teacher')['n aulas'].sum()
+        aulas_prealocadas = self.df_class[
+            (self.df_class['teacher'].notnull()) &
+            (self.df_class['teacher'].astype(str).str.strip() != '-') &
+            (self.df_class['teacher'].astype(str).str.strip().str.lower() != 'nan')
+        ].drop_duplicates(subset=['teacher', 'nome grupo'])
+        carga_professores = aulas_prealocadas.groupby('teacher')['n aulas'].sum()
         
         for _, professor_info in self.df_teach.iterrows():
             nome = professor_info['TEACHER']
@@ -267,13 +295,36 @@ class validador:
             aulas_alocadas = carga_professores.get(nome, 0)
             
             if aulas_alocadas > maximo:
-                deficit = maximo - aulas_alocadas
+                excesso = aulas_alocadas - maximo
                 
                 st.write(
-                    f"PROFESSOR COM CARGA MAIS QUE SUFICIENTE: {nome} | "
-                    f"Aulas alocadas: {aulas_alocadas} | "
-                    f"Máximo de: {maximo} | "
-                    f"Ultrapassou: {deficit} aula(s)"
+                    f"PROFESSOR PRÉ-ALOCADO ACIMA DA MÉDIA: {nome} | "
+                    f"Aulas pré-alocadas: {aulas_alocadas} | "
+                    f"Máximo: {maximo} | "
+                    f"Excesso: {excesso} aula(s)"
+                )
+
+    def check_restrictions_teacher(self):
+        """
+        Verifica se professor pré-alocado aparece na coluna restricoes_professor da turma.
+        """
+        df_restricoes = self.df_class[
+            (self.df_class['teacher'].notnull()) &
+            (self.df_class['teacher'].astype(str).str.strip() != '-') &
+            (self.df_class['restricoes_professor'].notnull())
+        ]
+
+        for _, aula in df_restricoes.iterrows():
+            professor = aula['teacher']
+            restricoes = [
+                item.strip()
+                for item in str(aula['restricoes_professor']).split(',')
+                if item.strip()
+            ]
+            if professor in restricoes:
+                st.write(
+                    f"Professor {professor} está pré-alocado na turma "
+                    f"{aula['nome grupo']}, mas aparece em restricoes_professor."
                 )
     
     def check_unidade(self):
