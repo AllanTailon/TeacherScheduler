@@ -1,12 +1,23 @@
 import pickle
 from pathlib import Path
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
 import base64
 import os
 import io
-from utils import transform_classes_dateframe, transform_teacher_dataframe, transform_alocation_dataframe, enviar_email_para_todos
+from utils import (
+    load_rota_excel,
+    export_rota_excel,
+    build_rota_titulo,
+    parse_rota_titulo,
+    parse_dd_mm_to_date,
+    transform_classes_dateframe,
+    transform_teacher_dataframe,
+    transform_alocation_dataframe,
+    enviar_email_para_todos,
+)
 from teacher_alocation import TeacherScheduler
 from validador import validador
 import json
@@ -113,21 +124,49 @@ elif authentication_status:
         rota_uploaded_file = st.file_uploader("Faça o upload do arquivo da Rota", type=["xlsx"], key="rota_uploader")
 
         if rota_uploaded_file:
-            aulas_raw = pd.read_excel(rota_uploaded_file)
+            rota_bytes = rota_uploaded_file.getvalue()
+            st.session_state['rota_template_bytes'] = rota_bytes
+            aulas_raw, rota_titulo, rota_sheet_name = load_rota_excel(io.BytesIO(rota_bytes))
+            st.session_state['rota_sheet_name'] = rota_sheet_name
             st.dataframe(aulas_raw)
+
+            st.subheader("Período da rota")
+            inicio_str, fim_str = parse_rota_titulo(rota_titulo)
+            hoje = datetime.now().date()
+            col_inicio, col_fim = st.columns(2)
+            with col_inicio:
+                data_inicio = st.date_input(
+                    "Data início",
+                    value=parse_dd_mm_to_date(inicio_str) if inicio_str else hoje,
+                    format="DD/MM/YYYY",
+                    key="rota_data_inicio",
+                )
+            with col_fim:
+                data_fim = st.date_input(
+                    "Data fim",
+                    value=parse_dd_mm_to_date(fim_str) if fim_str else hoje,
+                    format="DD/MM/YYYY",
+                    key="rota_data_fim",
+                )
+
+            rota_titulo_export = build_rota_titulo(
+                data_inicio.strftime("%d/%m"),
+                data_fim.strftime("%d/%m"),
+            )
+            st.caption(f"Título no Excel: **{rota_titulo_export}**")
 
             st.subheader("Upload do arquivo dos Professores")
             professores_uploaded_file = st.file_uploader("Faça o upload do arquivo dos Professores", type=["xlsx"], key="professores_uploader")
 
             if professores_uploaded_file:
-                professores_raw = pd.read_excel(professores_uploaded_file)
+                professores_raw = transform_teacher_dataframe(pd.read_excel(professores_uploaded_file))
                 st.dataframe(professores_raw)
 
                 if st.button("Verificar Dados"):
                      with st.spinner(text="Validando Dados..."):
                         
                         classes_result = transform_classes_dateframe(aulas_raw)
-                        professores_result = transform_teacher_dataframe(professores_raw)
+                        professores_result = professores_raw
                         Validador = validador(classes_result, professores_result)
                         Validador.check_problem()
                         st.success("Feito!")
@@ -137,7 +176,7 @@ elif authentication_status:
                     with st.spinner(text="Gerando Rotas..."):
 
                         classes_result = transform_classes_dateframe(aulas_raw)
-                        professores_result = transform_teacher_dataframe(professores_raw)
+                        professores_result = professores_raw
 
                         Ts = TeacherScheduler(classes_result, professores_result)
 
@@ -164,10 +203,12 @@ elif authentication_status:
                     st.subheader("Aulas não alocadas")
                     st.dataframe(aulas_nao_alocadas)
                     
-                    output = io.BytesIO()
-                    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                        df_results.to_excel(writer, index=False, sheet_name="Rotas")
-                    processed_file = output.getvalue()
+                    processed_file = export_rota_excel(
+                        df_results,
+                        titulo=rota_titulo_export,
+                        template_bytes=st.session_state.get('rota_template_bytes'),
+                        sheet_name=st.session_state.get('rota_sheet_name'),
+                    )
 
                     st.download_button(
                         label="Download das Rotas",
@@ -205,7 +246,8 @@ elif authentication_status:
         emails_uploaded_file = st.file_uploader("Faça o upload do arquivo da Base de Professores", type=["xlsx"], key="emails_uploader_2")
 
         if rota_uploaded_file and emails_uploaded_file:
-            rotas_df = pd.read_excel(rota_uploaded_file)
+            rota_bytes = rota_uploaded_file.getvalue()
+            rotas_df, _, _ = load_rota_excel(io.BytesIO(rota_bytes))
             emails_df = pd.read_excel(emails_uploaded_file)
 
             rotas_df.rename(columns={'teacher': 'Teacher', 'nome grupo': 'Nome Grupo'}, inplace=True)
@@ -216,7 +258,7 @@ elif authentication_status:
 
                 if st.button("📧 Enviar e-mail para os professores"):
                     with st.spinner("Enviando e-mails..."):
-                        new_logs = enviar_email_para_todos(combined_df, rota_uploaded_file)
+                        new_logs = enviar_email_para_todos(combined_df, rota_bytes)
                         st.session_state.log_messages.extend(new_logs)
                         save_logs(st.session_state.log_messages)
 

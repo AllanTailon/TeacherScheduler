@@ -333,7 +333,7 @@ class validador:
         """
         for i in self.teacher_alocated:
             if i in self.df_teach['TEACHER'].unique():
-                unidade = self.df_class[(self.df_class['teacher']==i)&(self.df_class['status']=='PRESENCIAL')]['unidade'].unique()
+                unidade = self.df_class[(self.df_class['teacher']==i)&(self.df_class['status']=='PRESENCIAL')&(self.df_class['dias da semana']!='SÁBADO')]['unidade'].unique()
                 for uni in unidade:
                     if self.df_teach[self.df_teach['TEACHER']==i][uni.upper()].values[0] == 0:
                         message= f'Professor {i} nao pode dar aula na unidade: {uni}'
