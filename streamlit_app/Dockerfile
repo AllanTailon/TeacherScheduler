@@ -1,14 +1,15 @@
 FROM python:3.9-bullseye
 
-WORKDIR /root
+WORKDIR /app
 
-COPY . .
-COPY images/ /root/images
+COPY requirements.txt /app/requirements.txt
+RUN pip3 install --no-cache-dir -r /app/requirements.txt
 
-RUN pip3 install -r /root/requirements.txt
+COPY . /app/streamlit_app
 
 EXPOSE 8501
 
-ENTRYPOINT ["streamlit", "run"]
+ENV PYTHONUNBUFFERED=1
 
-CMD ["Pagina_principal_app.py"]
+ENTRYPOINT ["streamlit", "run"]
+CMD ["streamlit_app/Pagina_principal_app.py", "--server.address=0.0.0.0", "--server.port=8501"]

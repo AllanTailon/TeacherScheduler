@@ -1,11 +1,6 @@
 openpyxl
-gspread
-oauth2client
-plotly-express
 pandas
-streamlit-authenticator==0.1.5
-streamlit == 1.39.0
-pathlib
-datetime
+numpy
+streamlit==1.39.0
 ortools==9.11.4210
-xlsxwriter
+pytest

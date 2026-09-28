@@ -1,3 +1,30 @@
 .venv
 *venv
 __pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+.devcontainer/config.json
+secrets.toml
+.streamlit/secrets.toml
+
+# Runtime / local artifacts
+logs_temp.json
+*.log
+*.xlsx
+!streamlit_app/tests/fixtures/*.xlsx
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

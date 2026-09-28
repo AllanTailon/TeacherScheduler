@@ -1,13 +1,14 @@
 version: "3"
 services:
-
   streamlit-app:
-    image: the_family_alocation/web-app:latest
-    build: 
+    image: the_family_allocation/web-app:latest
+    build:
       context: .
-      dockerfile: 
-                Dockerfile
+      dockerfile: Dockerfile
     container_name: web-front
     restart: unless-stopped
     ports:
-     - "8501:8501"
+      - "8501:8501"
+    environment:
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-teacher.scheduler.contact@gmail.com}
