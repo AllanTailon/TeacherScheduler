@@ -49,7 +49,7 @@ Copy `.env.example` to `.env` (never commit `.env`):
 
 - Title row (optional): `ROTA dd/mm A dd/mm`
 - Header row with at least: `Grupo`, `Horário`, `Unidade`, `STATUS`, `Dias da Semana`, `STAGE`, `MODALIDADE`, `GRUPO`, `N Aulas`, `TEACHERS`
-- Days may use tokens like `2ª ● 4ª`, `EVERYDAY`, `DOUBLE`, `TRIPLE`
+- Days may use tokens like `2ª ● 4ª`, `EVERYDAY`, and per-day `DOUBLE`/`TRIPLE` (e.g. `2ª TRIPLE 6ª DOUBLE`)
 - Empty / `-` in `TEACHERS` means the group still needs allocation
 
 ### Teachers workbook
@@ -60,7 +60,7 @@ Required identity / capacity columns:
 - Unit flags: `SATÉLITE`, `JARDIM`, `VICENTINA`
 - Mode flags: `ONLINE`, `PRESENCIAL`, `INTENSIVÃO`
 - Group types: `Grupo`, `VIP`, `In Company`, `VIP - In Company`
-- Modalities as needed (`Espanhol`, `Kids`, `MBA`, CONV-*, …)
+- Modalities as needed (`Espanhol`, `Kids`, `MBA`, CONV-*, …). Rota label `Kids - Callan` maps to teacher column `Kids`.
 - Stage columns `ESTAGIO_*`
 - Day columns: `SEGUNDA` … `SÁBADO`
 - Hour columns matching rota times (`HH:MM:SS`)

@@ -114,6 +114,34 @@ def test_transform_classes_expands_days():
     assert g1_days == {"SEGUNDA", "QUARTA"}
 
 
+def test_mixed_triple_double_expands_per_day():
+    """'2ª TRIPLE 6ª DOUBLE' must expand to 3 Segunda + 2 Sexta slots, not both multipliers."""
+    raw = _sample_classes_raw().iloc[:1].copy()
+    raw.loc[0, "nome grupo"] = "NEURACI VIP ING P - 5X"
+    raw.loc[0, "horario"] = "09:00:00"
+    raw.loc[0, "dias da semana"] = "2ª TRIPLE 6ª DOUBLE"
+    raw.loc[0, "n aulas"] = 5
+    result = transform_classes_dataframe(raw)
+    slots = sorted(
+        zip(result["dias da semana"].tolist(), result["horario"].tolist())
+    )
+    assert slots == [
+        ("SEGUNDA", "09:00:00"),
+        ("SEGUNDA", "10:00:00"),
+        ("SEGUNDA", "11:00:00"),
+        ("SEXTA", "09:00:00"),
+        ("SEXTA", "10:00:00"),
+    ]
+
+
+def test_kids_callan_maps_to_kids_column():
+    raw = _sample_classes_raw().iloc[:1].copy()
+    raw.loc[0, "modalidade"] = "Kids - Callan"
+    raw.loc[0, "nome grupo"] = "KIDS GOOFY P - 2X"
+    result = transform_classes_dataframe(raw)
+    assert (result["modalidade"] == "Kids").all()
+
+
 def test_clean_data_day_map():
     df = pd.DataFrame(
         [

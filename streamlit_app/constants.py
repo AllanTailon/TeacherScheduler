@@ -38,6 +38,13 @@ MODALITY_LIST = [
     "CONV - Esp Avançado",
     "MBA",
 ]
+
+# Rota modality labels that map onto teacher-sheet column names
+MODALITY_ALIASES = {
+    "Kids - Callan": "Kids",
+    "Kids-Callan": "Kids",
+    "KIDS - CALLAN": "Kids",
+}
 GROUP_TYPE_LIST = ["Grupo", "VIP", "In Company", "VIP - In Company"]
 
 DAY_SUBSTITUTIONS = {

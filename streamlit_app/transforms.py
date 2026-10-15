@@ -2,13 +2,72 @@
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 
-from constants import DAY_SUBSTITUTIONS, INTENSIVE_LESSON_THRESHOLD
+from constants import DAY_SUBSTITUTIONS, INTENSIVE_LESSON_THRESHOLD, MODALITY_ALIASES
 from rota_io import normalize_stage, normalize_teacher_name, stringify_column_name, teacher_or_dash
+
+# Day token + optional intensifier, e.g. "2ª TRIPLE", "6ª DOUBLE", "Saturday TRIPLE"
+_DAY_TOKEN_RE = re.compile(
+    r"(EVERYDAY|SATURDAY|2ª|3ª|4ª|5ª|6ª)(?:\s*(TRIPLE|DOUBLE|SINGLE))?",
+    flags=re.IGNORECASE,
+)
+
+
+def _intensifier_hours(token: str | None) -> int:
+    if not token:
+        return 1
+    upper = token.upper()
+    if upper == "TRIPLE":
+        return 3
+    if upper == "DOUBLE":
+        return 2
+    return 1
+
+
+def parse_day_slots(dias: str) -> list[tuple[str, int]]:
+    """Parse '2ª TRIPLE 6ª DOUBLE' into [(2ª, 3), (6ª, 2)]."""
+    text = str(dias).replace("●", " ").replace("-", " ")
+    slots: list[tuple[str, int]] = []
+    for day_raw, intensifier in _DAY_TOKEN_RE.findall(text):
+        hours = _intensifier_hours(intensifier)
+        day_key = day_raw.upper() if day_raw.upper() in {"SATURDAY", "EVERYDAY"} else day_raw
+        if day_key == "EVERYDAY":
+            for weekday in ("2ª", "3ª", "4ª", "5ª", "6ª"):
+                slots.append((weekday, hours))
+        else:
+            slots.append((day_key, hours))
+    return slots
+
+
+def expand_class_row(row: pd.Series) -> pd.DataFrame:
+    """Expand one class into one row per (day, consecutive hour)."""
+    slots = parse_day_slots(row["dias da semana"])
+    if not slots:
+        # Fallback: keep row as-is so downstream can still surface the bad day string
+        return pd.DataFrame([row])
+
+    hora_inicial = pd.to_datetime(row["horario"], format="%H:%M:%S")
+    novas = []
+    for day, times in slots:
+        for i in range(times):
+            nova = row.copy()
+            nova["horario"] = (hora_inicial + pd.Timedelta(hours=i)).strftime("%H:%M:%S")
+            nova["dias da semana"] = day
+            novas.append(nova)
+    return pd.DataFrame(novas)
+
+
+def expand_rows(df: pd.DataFrame, func) -> pd.DataFrame:
+    if df.empty:
+        return df.copy()
+    return pd.concat(df.apply(func, axis=1).tolist(), ignore_index=True)
 
 
 def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
+    """Legacy helper kept for utils facade compatibility."""
     hora_inicial = pd.to_datetime(row["horario"], format="%H:%M:%S")
     novas_linhas = []
     for i in range(times):
@@ -18,78 +77,70 @@ def replicate_row(row: pd.Series, times: int) -> pd.DataFrame:
     return pd.DataFrame(novas_linhas)
 
 
-def expand_rows(df: pd.DataFrame, func) -> pd.DataFrame:
-    return pd.concat(df.apply(func, axis=1).tolist(), ignore_index=True)
-
-
-def clean_data(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    df["dias da semana"] = (
-        df["dias da semana"]
-        .str.replace("●", ",")
-        .str.replace(" ", "")
-        .str.replace("-", "")
-        .str.replace("DOUBLE", ",")
-        .str.replace("SINGLE", "")
-        .str.replace("TRIPLE", "")
-        .str.split(",")
-    )
-    df = df.explode("dias da semana").reset_index(drop=True)
-
-    df["dias da semana"] = df["dias da semana"].str.replace("ª", "ª,").str.split(",")
-    df = df.explode("dias da semana").reset_index(drop=True)
-
-    df = df[df["dias da semana"] != ""].copy()
-
-    df["dias da semana"] = df["dias da semana"].replace(DAY_SUBSTITUTIONS, regex=True)
-    df["status"] = df["status"].fillna("PRESENCIAL")
-    df["horario_tratado"] = pd.to_datetime(df["horario"], format="%H:%M:%S")
-    df["is_intensive"] = (df["n aulas"] >= INTENSIVE_LESSON_THRESHOLD).astype(int)
-
-    return df
-
-
 def base_selection(df: pd.DataFrame) -> tuple:
-    aulas_tratadas = df.loc[~df["nome grupo"].isnull()]
-
-    aulas = aulas_tratadas.copy()
-    aulas["dias da semana"] = aulas["dias da semana"].str.upper()
+    """Legacy helper: split simple / DOUBLE / TRIPLE rows (pre per-day parser)."""
+    aulas = df.loc[~df["nome grupo"].isnull()].copy()
+    aulas["dias da semana"] = aulas["dias da semana"].astype(str).str.upper()
     aulas["dias da semana"] = aulas["dias da semana"].str.replace(
         "EVERYDAY", "2ª ● 3ª ● 4ª ● 5ª ● 6ª"
     )
-    aulas["stage"] = aulas["stage"].apply(normalize_stage)
-    aulas["ultimo_professor"] = aulas["ultimo_professor"].map(teacher_or_dash)
-    aulas["penultimo_professor"] = aulas["penultimo_professor"].map(teacher_or_dash)
-    aulas["teacher"] = aulas["teacher"].map(teacher_or_dash)
-
     tri = aulas.loc[aulas["dias da semana"].str.contains("TRIPLE")]
     doub = aulas.loc[aulas["dias da semana"].str.contains("DOUBLE")]
     aulas_simples = aulas[~aulas["dias da semana"].str.contains("DOUBLE|TRIPLE")].copy()
-
     aulas_simples["horario"] = pd.to_datetime(
         aulas_simples["horario"], format="%H:%M:%S"
     ).dt.strftime("%H:%M:%S")
     return aulas_simples, doub, tri
 
 
-def transform_classes_dataframe(aulas_raw):
-    aulas_simples, doub, tri = base_selection(aulas_raw)
+def finalize_class_rows(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["dias da semana"] = df["dias da semana"].replace(DAY_SUBSTITUTIONS, regex=True)
+    df["dias da semana"] = df["dias da semana"].astype(str).str.upper()
+    df["status"] = df["status"].fillna("PRESENCIAL")
+    df["horario_tratado"] = pd.to_datetime(df["horario"], format="%H:%M:%S")
+    df["is_intensive"] = (df["n aulas"] >= INTENSIVE_LESSON_THRESHOLD).astype(int)
+    return df
 
-    if doub.empty:
-        aulas_duplicadas = pd.DataFrame(columns=aulas_simples.columns)
-    else:
-        aulas_duplicadas = expand_rows(doub, lambda row: replicate_row(row, times=2))
 
-    if tri.empty:
-        aulas_triplicadas = pd.DataFrame(columns=aulas_simples.columns)
-    else:
-        aulas_triplicadas = expand_rows(tri, lambda row: replicate_row(row, times=3))
-
-    df_tratado = pd.concat(
-        [aulas_simples, aulas_duplicadas, aulas_triplicadas], ignore_index=True
+def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Legacy helper: explode multi-day strings without DOUBLE/TRIPLE, then finalize."""
+    df = df.copy()
+    df["dias da semana"] = (
+        df["dias da semana"]
+        .astype(str)
+        .str.replace("●", ",", regex=False)
+        .str.replace(" ", "", regex=False)
+        .str.replace("-", "", regex=False)
+        .str.replace("DOUBLE", ",", regex=False)
+        .str.replace("SINGLE", "", regex=False)
+        .str.replace("TRIPLE", "", regex=False)
+        .str.split(",")
     )
-    return clean_data(df_tratado)
+    df = df.explode("dias da semana").reset_index(drop=True)
+    df["dias da semana"] = df["dias da semana"].str.replace("ª", "ª,", regex=False).str.split(",")
+    df = df.explode("dias da semana").reset_index(drop=True)
+    df = df[df["dias da semana"] != ""].copy()
+    return finalize_class_rows(df)
+
+
+def _prep_classes(aulas_raw: pd.DataFrame) -> pd.DataFrame:
+    aulas = aulas_raw.loc[~aulas_raw["nome grupo"].isnull()].copy()
+    aulas["dias da semana"] = aulas["dias da semana"].astype(str)
+    aulas["stage"] = aulas["stage"].apply(normalize_stage)
+    aulas["ultimo_professor"] = aulas["ultimo_professor"].map(teacher_or_dash)
+    aulas["penultimo_professor"] = aulas["penultimo_professor"].map(teacher_or_dash)
+    aulas["teacher"] = aulas["teacher"].map(teacher_or_dash)
+    if "modalidade" in aulas.columns:
+        aulas["modalidade"] = aulas["modalidade"].replace(MODALITY_ALIASES)
+    aulas["horario"] = pd.to_datetime(aulas["horario"], format="%H:%M:%S").dt.strftime("%H:%M:%S")
+    return aulas
+
+
+def transform_classes_dataframe(aulas_raw):
+    aulas = _prep_classes(aulas_raw)
+    expanded = expand_rows(aulas, expand_class_row)
+    return finalize_class_rows(expanded)
 
 
 # Backward-compatible alias (typo in original API)
