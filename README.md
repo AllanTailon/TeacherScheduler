@@ -34,12 +34,25 @@ streamlit run streamlit_app/Pagina_principal_app.py
 
 ## Secrets (required for e-mail / production auth)
 
-Copy `.env.example` to `.env` (never commit `.env`):
+Never commit real passwords. The app resolves credentials in this order:
+
+1. Environment variables (`EMAIL_PASSWORD`, `EMAIL_ADDRESS`)
+2. Repo-root `.env` (local / Docker `env_file`)
+3. **Streamlit Secrets** (`st.secrets`) — use this on Streamlit Cloud
 
 | Variable | Purpose |
 |----------|---------|
 | `EMAIL_ADDRESS` | Gmail sender address |
 | `EMAIL_PASSWORD` | Gmail **app password** (rotate if it was ever committed) |
+
+**Local / Docker:** copy `.env.example` → `.env` and fill values.
+
+**Streamlit Cloud:** App settings → Secrets:
+
+```toml
+EMAIL_ADDRESS = "teacher.scheduler.contact@gmail.com"
+EMAIL_PASSWORD = "your-gmail-app-password"
+```
 
 > **Security:** Any Gmail app password previously stored in `.devcontainer/config.json` must be revoked in Google Account settings and replaced.
 

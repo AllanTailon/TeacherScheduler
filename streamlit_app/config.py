@@ -1,4 +1,4 @@
-"""Load secrets from environment / optional .env without committing credentials."""
+"""Load secrets from environment / .env / Streamlit secrets without committing credentials."""
 
 from __future__ import annotations
 
@@ -27,12 +27,37 @@ def _load_dotenv() -> None:
 _load_dotenv()
 
 
+def _from_streamlit_secrets(key: str) -> str:
+    """Read Streamlit Cloud / local secrets.toml when available."""
+    try:
+        import streamlit as st
+
+        secrets = st.secrets
+    except Exception:
+        return ""
+
+    try:
+        value = secrets.get(key)
+    except Exception:
+        return ""
+
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 def get_email_address() -> str:
-    return os.environ.get("EMAIL_ADDRESS", "teacher.scheduler.contact@gmail.com")
+    return (
+        os.environ.get("EMAIL_ADDRESS", "").strip()
+        or _from_streamlit_secrets("EMAIL_ADDRESS")
+        or "teacher.scheduler.contact@gmail.com"
+    )
 
 
 def get_email_password() -> str:
-    password = os.environ.get("EMAIL_PASSWORD", "").strip()
+    password = os.environ.get("EMAIL_PASSWORD", "").strip() or _from_streamlit_secrets(
+        "EMAIL_PASSWORD"
+    )
     if password:
         return password
 
@@ -50,8 +75,9 @@ def get_email_password() -> str:
             pass
 
     raise RuntimeError(
-        "EMAIL_PASSWORD não configurada. Defina a variável de ambiente "
-        "ou um arquivo .env (veja .env.example)."
+        "EMAIL_PASSWORD não configurada. Defina a variável de ambiente, "
+        "um arquivo .env, ou Streamlit Secrets "
+        "(Settings → Secrets: EMAIL_PASSWORD = \"...\")."
     )
 
 
