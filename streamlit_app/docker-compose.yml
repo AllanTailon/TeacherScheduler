@@ -9,6 +9,10 @@ services:
     restart: unless-stopped
     ports:
       - "8501:8501"
+    # Load secrets from repo-root .env (never commit that file).
+    # Do not set EMAIL_PASSWORD=${EMAIL_PASSWORD:-} here — an empty
+    # substitution overrides env_file and breaks Gmail auth.
+    env_file:
+      - ../.env
     environment:
-      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
-      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-teacher.scheduler.contact@gmail.com}
+      EMAIL_ADDRESS: ${EMAIL_ADDRESS:-teacher.scheduler.contact@gmail.com}

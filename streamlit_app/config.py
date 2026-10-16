@@ -19,7 +19,9 @@ def _load_dotenv() -> None:
         key, _, value = line.partition("=")
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
+        # Fill missing or blank env vars (Compose often injects EMAIL_PASSWORD=).
+        if not str(os.environ.get(key, "")).strip():
+            os.environ[key] = value
 
 
 _load_dotenv()
