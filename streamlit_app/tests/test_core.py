@@ -200,6 +200,60 @@ def test_require_all_teachers_false_when_counts_equal():
     assert result.require_all_teachers is False
 
 
+def test_presencial_zero_as_string_blocks_presencial_classes():
+    """Excel often loads 0/1 flags as strings; '0' must still forbid PRESENCIAL."""
+    from transforms import transform_allocation_dataframe, transform_teacher_dataframe
+
+    classes_raw = pd.DataFrame(
+        [
+            {
+                "nome grupo": "G_PRES",
+                "horario": "10:00:00",
+                "unidade": "JARDIM",
+                "status": "PRESENCIAL",
+                "dias da semana": "2ª",
+                "stage": "ESTAGIO_1",
+                "modalidade": "Inglês",
+                "grupo": "Grupo",
+                "n aulas": 2,
+                "teacher": "-",
+                "ultimo_professor": "-",
+                "penultimo_professor": "-",
+                "restricoes_professor": None,
+            },
+            {
+                "nome grupo": "G_ON",
+                "horario": "11:00:00",
+                "unidade": "JARDIM",
+                "status": "ONLINE",
+                "dias da semana": "3ª",
+                "stage": "ESTAGIO_1",
+                "modalidade": "Inglês",
+                "grupo": "Grupo",
+                "n aulas": 2,
+                "teacher": "-",
+                "ultimo_professor": "-",
+                "penultimo_professor": "-",
+                "restricoes_professor": None,
+            },
+        ]
+    )
+    teachers = _sample_teachers()
+    teachers["PRESENCIAL"] = teachers["PRESENCIAL"].astype(str)
+    teachers.loc[teachers["TEACHER"] == "Alice", "PRESENCIAL"] = "0"
+    teachers.loc[teachers["TEACHER"] == "Bob", "PRESENCIAL"] = "1"
+    teachers = transform_teacher_dataframe(teachers)
+
+    classes = transform_classes_dataframe(classes_raw)
+    result = TeacherScheduler(classes, teachers).schedule_teachers(
+        use_soft_constraint=2, seed=1, require_all_teachers=False
+    )
+    assert result.success, result.status
+    out, _ = transform_allocation_dataframe(classes_raw, result.allocations)
+    assert out.loc[out["nome grupo"] == "G_PRES", "teacher"].iloc[0] == "Bob"
+    assert out.loc[out["nome grupo"] == "G_ON", "teacher"].iloc[0] in {"Alice", "Bob"}
+
+
 def test_saturday_ignores_hour_and_unit_flags():
     """Teacher with SÁBADO=1 but hour=0 and unit=0 must still take Saturday class."""
     from transforms import transform_allocation_dataframe

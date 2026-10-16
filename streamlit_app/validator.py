@@ -9,6 +9,16 @@ import pandas as pd
 from constants import DAYS_OF_WEEK, MIN_GAP_MINUTES, SATURDAY
 
 
+def _flag_is_zero(value) -> bool:
+    """Treat 0 / 0.0 / '0' / blank as unavailable capability."""
+    try:
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return True
+        return int(float(value)) == 0
+    except (TypeError, ValueError):
+        return True
+
+
 @dataclass
 class ValidationIssue:
     code: str
@@ -255,10 +265,10 @@ class Validator:
             if i in self.df_teach["TEACHER"].unique():
                 status = self.df_class[self.df_class["teacher"] == i]["status"].unique()
                 for s in status:
-                    if (
-                        s in self.df_teach.columns
-                        and self.df_teach[self.df_teach["TEACHER"] == i][s].values[0] == 0
-                    ):
+                    if s not in self.df_teach.columns:
+                        continue
+                    flag = self.df_teach[self.df_teach["TEACHER"] == i][s].values[0]
+                    if _flag_is_zero(flag):
                         self.result.add(
                             "status_capability",
                             f"Professor {i} nao pode dar aula no status: {s}",

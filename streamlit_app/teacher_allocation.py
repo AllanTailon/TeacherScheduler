@@ -37,6 +37,20 @@ STATUS_NAME = {
 }
 
 
+def _flag_series_is_zero(series: pd.Series) -> pd.Series:
+    """True where a teacher capability flag means 'unavailable' (0 / '0' / blank)."""
+    return pd.to_numeric(series, errors="coerce").fillna(0).eq(0)
+
+
+def _scalar_flag_is_zero(value) -> bool:
+    try:
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return True
+        return int(float(value)) == 0
+    except (TypeError, ValueError):
+        return True
+
+
 @dataclass
 class ScheduleResult:
     allocations: pd.DataFrame
@@ -161,7 +175,9 @@ class TeacherScheduler:
         for und in UNIDADE_LIST:
             if und not in self.df_teach.columns:
                 continue
-            for i in self.df_teach.loc[self.df_teach[und] == 0, "TEACHER"].to_list():
+            for i in self.df_teach.loc[
+                _flag_series_is_zero(self.df_teach[und]), "TEACHER"
+            ].to_list():
                 for g in self.df_class.loc[
                     (
                         (self.df_class["unidade"].str.upper() == und)
@@ -305,7 +321,9 @@ class TeacherScheduler:
         for mod in MODALITY_LIST:
             if mod not in self.df_teach.columns:
                 continue
-            for i in self.df_teach.loc[self.df_teach[mod] == 0, "TEACHER"].to_list():
+            for i in self.df_teach.loc[
+                _flag_series_is_zero(self.df_teach[mod]), "TEACHER"
+            ].to_list():
                 for g in self.df_class.loc[self.df_class["modalidade"] == mod, "nome grupo"].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
@@ -313,7 +331,9 @@ class TeacherScheduler:
         for grp in GROUP_TYPE_LIST:
             if grp not in self.df_teach.columns:
                 continue
-            for i in self.df_teach.loc[self.df_teach[grp] == 0, "TEACHER"].to_list():
+            for i in self.df_teach.loc[
+                _flag_series_is_zero(self.df_teach[grp]), "TEACHER"
+            ].to_list():
                 for g in self.df_class.loc[self.df_class["grupo"] == grp, "nome grupo"].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
@@ -382,7 +402,9 @@ class TeacherScheduler:
         for est in estagio_list:
             if est not in self.df_teach.columns:
                 continue
-            for i in self.df_teach.loc[self.df_teach[est] == 0, "TEACHER"].to_list():
+            for i in self.df_teach.loc[
+                _flag_series_is_zero(self.df_teach[est]), "TEACHER"
+            ].to_list():
                 for g in self.df_class.loc[
                     ((self.df_class["stage"] == est) & (self.df_class["modalidade"] != "Espanhol")),
                     "nome grupo",
@@ -393,7 +415,9 @@ class TeacherScheduler:
         for sts in ["ONLINE", "PRESENCIAL"]:
             if sts not in self.df_teach.columns:
                 continue
-            for i in self.df_teach.loc[(self.df_teach[sts] == 0), "TEACHER"].to_list():
+            for i in self.df_teach.loc[
+                _flag_series_is_zero(self.df_teach[sts]), "TEACHER"
+            ].to_list():
                 for g in self.df_class.loc[self.df_class["status"] == sts]["nome grupo"].unique():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
@@ -418,9 +442,8 @@ class TeacherScheduler:
             if missing:
                 continue
             for i in self.teachers:
-                if (self.df_teach.loc[self.df_teach["TEACHER"] == i, time_class] == 0).any(
-                    axis=1
-                ).values[0]:
+                hour_flags = self.df_teach.loc[self.df_teach["TEACHER"] == i, time_class]
+                if _flag_series_is_zero(hour_flags.iloc[0]).any():
                     self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_day_availability_constraints(self):
@@ -433,14 +456,16 @@ class TeacherScheduler:
                 ].unique()
                 disponibilidade = self.df_teach[self.df_teach["TEACHER"] == i][x].values[0]
 
-                if disponibilidade == 0:
+                if _scalar_flag_is_zero(disponibilidade):
                     for g in turmas_do_dia:
                         self.model.Add(self.alocacoes[(i, g)] == 0)
 
     def add_intensive_constraints(self):
         if "INTENSIVÃO" not in self.df_teach.columns:
             return
-        for i in self.df_teach.loc[self.df_teach["INTENSIVÃO"] == 0, "TEACHER"].to_list():
+        for i in self.df_teach.loc[
+            _flag_series_is_zero(self.df_teach["INTENSIVÃO"]), "TEACHER"
+        ].to_list():
             for g in self.df_class.loc[
                 self.df_class["n aulas"] >= INTENSIVE_LESSON_THRESHOLD, "nome grupo"
             ].unique():

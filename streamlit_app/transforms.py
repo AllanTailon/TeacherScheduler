@@ -147,9 +147,31 @@ def transform_classes_dataframe(aulas_raw):
 transform_classes_dateframe = transform_classes_dataframe
 
 
+_TEACHER_TEXT_COLUMNS = frozenset(
+    {"TEACHER", "Email", "EMAIL", "E-mail", "e-mail", "email"}
+)
+
+
+def _coerce_teacher_capability_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure 0/1 flags are numeric so comparisons like ``== 0`` work.
+
+    Excel/pandas sometimes load zeros as the string ``\"0\"``, which breaks
+    ``df[col] == 0`` and silently skips ONLINE/PRESENCIAL (and other) constraints.
+    """
+    df = df.copy()
+    for col in df.columns:
+        if col in _TEACHER_TEXT_COLUMNS:
+            continue
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        if col != "MEDIA":
+            df[col] = df[col].fillna(0).astype(int)
+    return df
+
+
 def transform_teacher_dataframe(professores_raw):
     professores_raw = professores_raw.copy()
     professores_raw.columns = [stringify_column_name(col) for col in professores_raw.columns]
+    professores_raw = _coerce_teacher_capability_columns(professores_raw)
     if professores_raw.columns.str.contains("FERIAS").any():
         professores_raw = professores_raw[professores_raw["FERIAS"] != 1].copy()
     return professores_raw
