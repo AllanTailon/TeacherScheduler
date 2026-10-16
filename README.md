@@ -54,6 +54,12 @@ EMAIL_ADDRESS = "teacher.scheduler.contact@gmail.com"
 EMAIL_PASSWORD = "your-gmail-app-password"
 ```
 
+Gmail SMTP **requires an App Password** (16 characters), not the normal account password:
+
+1. Enable 2-Step Verification on the Gmail account  
+2. Open https://myaccount.google.com/apppasswords  
+3. Create a password for “Mail” and paste it into `.env` / Streamlit Secrets  
+
 > **Security:** Any Gmail app password previously stored in `.devcontainer/config.json` must be revoked in Google Account settings and replaced.
 
 ## Excel schemas

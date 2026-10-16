@@ -36,14 +36,41 @@ def _from_streamlit_secrets(key: str) -> str:
     except Exception:
         return ""
 
-    try:
-        value = secrets.get(key)
-    except Exception:
-        return ""
+    candidates = [key, key.lower(), key.upper()]
+    # Also allow nested [smtp] / [email] tables in secrets.toml
+    nested_parents = ("smtp", "email", "gmail")
 
-    if value is None:
-        return ""
-    return str(value).strip()
+    def _as_text(value) -> str:
+        if value is None:
+            return ""
+        return str(value).strip().strip('"').strip("'")
+
+    for candidate in candidates:
+        try:
+            if candidate in secrets:
+                text = _as_text(secrets[candidate])
+                if text:
+                    return text
+        except Exception:
+            pass
+
+    for parent in nested_parents:
+        try:
+            section = secrets.get(parent)
+        except Exception:
+            section = None
+        if section is None:
+            continue
+        for candidate in candidates:
+            try:
+                if candidate in section:
+                    text = _as_text(section[candidate])
+                    if text:
+                        return text
+            except Exception:
+                pass
+
+    return ""
 
 
 def get_email_address() -> str:

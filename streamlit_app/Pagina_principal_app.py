@@ -239,7 +239,7 @@ elif st.session_state.selected_page == "📧 Enviar Rota":
                 with st.spinner("Enviando e-mails..."):
                     try:
                         new_logs = enviar_email_para_todos(combined_df, rota_bytes)
-                    except RuntimeError as exc:
+                    except Exception as exc:  # noqa: BLE001 — show SMTP/auth errors in UI
                         st.error(str(exc))
                         new_logs = []
                     st.session_state.log_messages.extend(new_logs)

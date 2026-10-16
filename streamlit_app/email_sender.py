@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import re
 import smtplib
+import ssl
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -15,6 +16,45 @@ import pandas as pd
 from config import get_email_address, get_email_password
 from export_ooxml import export_rota_for_teacher
 from rota_io import load_rota_excel
+
+
+def _normalize_smtp_password(password: str) -> str:
+    """Gmail app passwords are often copied with spaces; strip them."""
+    return re.sub(r"\s+", "", (password or "").strip())
+
+
+def _connect_gmail(from_email: str, password: str) -> smtplib.SMTP:
+    """Connect and authenticate to Gmail SMTP (SSL 465, then STARTTLS 587)."""
+    password = _normalize_smtp_password(password)
+    context = ssl.create_default_context()
+    errors: list[str] = []
+
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30, context=context)
+        server.ehlo()
+        server.login(from_email, password)
+        return server
+    except Exception as exc:  # noqa: BLE001 — try fallback transport
+        errors.append(f"SSL/465: {type(exc).__name__}: {exc}")
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
+        server.ehlo()
+        server.starttls(context=context)
+        server.ehlo()
+        server.login(from_email, password)
+        return server
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"STARTTLS/587: {type(exc).__name__}: {exc}")
+
+    detail = " | ".join(errors)
+    raise RuntimeError(
+        "Falha ao autenticar no Gmail SMTP. "
+        "Use uma Senha de app (16 caracteres) em "
+        "https://myaccount.google.com/apppasswords "
+        "com 2FA ativo, e configure EMAIL_PASSWORD "
+        f"(Streamlit Secrets ou .env). Detalhe: {detail}"
+    )
 
 
 def enviar_email_para_todos(combined_df, arquivo_rota) -> list[str]:
@@ -36,9 +76,7 @@ def enviar_email_para_todos(combined_df, arquivo_rota) -> list[str]:
 
     server = None
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(from_email, password)
+        server = _connect_gmail(from_email, password)
 
         for teacher in combined_df["Teacher"].unique():
             professor_data = combined_df[combined_df["Teacher"] == teacher]
